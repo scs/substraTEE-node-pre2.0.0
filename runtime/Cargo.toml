@@ -96,6 +96,13 @@ git = 'https://github.com/paritytech/substrate.git'
 package = 'srml-sudo'
 rev = '6e67eff0653677d3d01980ca822c4b8a227914a3'
 
+[dependencies.contract]
+default_features = false
+git = 'https://github.com/paritytech/substrate.git'
+package = 'srml-contract'
+rev = '6e67eff0653677d3d01980ca822c4b8a227914a3'
+features = ["core"]
+
 [dependencies.support]
 default_features = false
 git = 'https://github.com/paritytech/substrate.git'

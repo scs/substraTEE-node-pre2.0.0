@@ -184,6 +184,17 @@ impl balances::Trait for Runtime {
 	type TransferPayment = ();
 }
 
+impl contract::Trait for Runtime {
+	type Currency = Balances;
+	type Call = Call;
+	type Event = Event;
+	type Gas = u64;
+	type DetermineContractAddress = contract::SimpleAddressDeterminator<Runtime>;
+	type ComputeDispatchFee = contract::DefaultDispatchFeeComputor<Runtime>;
+	type TrieIdGenerator = contract::TrieIdFromParentCounter<Runtime>;
+	type GasPayment = ();
+}
+
 impl sudo::Trait for Runtime {
 	/// The uniquitous event type.
 	type Event = Event;
@@ -213,6 +224,7 @@ construct_runtime!(
 		Balances: balances,
 		Sudo: sudo,
         SubstraTEEProxy: substratee_proxy::{Module, Call, Storage, Event<T>},
+		Contract: contract::{Module, Call, Storage, Config<T>, Event<T>},
 		// Used for the module template in `./template.rs`
 		// TemplateModule: template::{Module, Call, Storage, Event<T>},
 	}
