@@ -150,6 +150,7 @@ std = [
     'consensus-aura/std',
     'offchain-primitives/std',
     'consensus_authorities/std',
+    'contract/std'
 ]
 no_global_allocator = [
 	"rstd/no_global_allocator",
