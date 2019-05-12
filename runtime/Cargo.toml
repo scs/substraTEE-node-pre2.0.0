@@ -1,56 +1,56 @@
 [dependencies.aura]
 default_features = false
-git = 'https://github.com/paritytech/substrate.git'
+git = 'https://github.com/brenzi/substrate.git'
 package = 'srml-aura'
-rev = '6e67eff0653677d3d01980ca822c4b8a227914a3'
+branch = "brenzi-contract-replace-sr-io"
 
 [dependencies.balances]
 default_features = false
-git = 'https://github.com/paritytech/substrate.git'
+git = 'https://github.com/brenzi/substrate.git'
 package = 'srml-balances'
-rev = '6e67eff0653677d3d01980ca822c4b8a227914a3'
+branch = "brenzi-contract-replace-sr-io"
 
 [dependencies.client]
 default_features = false
-git = 'https://github.com/paritytech/substrate.git'
+git = 'https://github.com/brenzi/substrate.git'
 package = 'substrate-client'
-rev = '6e67eff0653677d3d01980ca822c4b8a227914a3'
+branch = "brenzi-contract-replace-sr-io"
 
 [dependencies.consensus]
 default_features = false
-git = 'https://github.com/paritytech/substrate.git'
+git = 'https://github.com/brenzi/substrate.git'
 package = 'srml-consensus'
-rev = '6e67eff0653677d3d01980ca822c4b8a227914a3'
+branch = "brenzi-contract-replace-sr-io"
 
 [dependencies.consensus-aura]
 default_features = false
-git = 'https://github.com/paritytech/substrate.git'
+git = 'https://github.com/brenzi/substrate.git'
 package = 'substrate-consensus-aura-primitives'
-rev = '6e67eff0653677d3d01980ca822c4b8a227914a3'
+branch = "brenzi-contract-replace-sr-io"
 
 [dependencies.consensus_authorities]
 default-features = false
-git = 'https://github.com/paritytech/substrate.git'
+git = 'https://github.com/brenzi/substrate.git'
 package = 'substrate-consensus-authorities'
-rev = '6e67eff0653677d3d01980ca822c4b8a227914a3'
+branch = "brenzi-contract-replace-sr-io"
 
 [dependencies.executive]
 default_features = false
-git = 'https://github.com/paritytech/substrate.git'
+git = 'https://github.com/brenzi/substrate.git'
 package = 'srml-executive'
-rev = '6e67eff0653677d3d01980ca822c4b8a227914a3'
+branch = "brenzi-contract-replace-sr-io"
 
 [dependencies.indices]
 default_features = false
-git = 'https://github.com/paritytech/substrate.git'
+git = 'https://github.com/brenzi/substrate.git'
 package = 'srml-indices'
-rev = '6e67eff0653677d3d01980ca822c4b8a227914a3'
+branch = "brenzi-contract-replace-sr-io"
 
 [dependencies.offchain-primitives]
 default-features = false
-git = 'https://github.com/paritytech/substrate.git'
+git = 'https://github.com/brenzi/substrate.git'
 package = 'substrate-offchain-primitives'
-rev = '6e67eff0653677d3d01980ca822c4b8a227914a3'
+branch = "brenzi-contract-replace-sr-io"
 
 [dependencies.parity-codec]
 default-features = false
@@ -59,27 +59,27 @@ version = '3.3'
 
 [dependencies.primitives]
 default_features = false
-git = 'https://github.com/paritytech/substrate.git'
+git = 'https://github.com/brenzi/substrate.git'
 package = 'substrate-primitives'
-rev = '6e67eff0653677d3d01980ca822c4b8a227914a3'
+branch = "brenzi-contract-replace-sr-io"
 
 [dependencies.rstd]
 default_features = false
-git = 'https://github.com/paritytech/substrate.git'
+git = 'https://github.com/brenzi/substrate.git'
 package = 'sr-std'
-rev = '6e67eff0653677d3d01980ca822c4b8a227914a3'
+branch = "brenzi-contract-replace-sr-io"
 
 [dependencies.runtime-io]
 default_features = false
-git = 'https://github.com/paritytech/substrate.git'
+git = 'https://github.com/brenzi/substrate.git'
 package = 'sr-io'
-rev = '6e67eff0653677d3d01980ca822c4b8a227914a3'
+branch = "brenzi-contract-replace-sr-io"
 
 [dependencies.runtime-primitives]
 default_features = false
-git = 'https://github.com/paritytech/substrate.git'
+git = 'https://github.com/brenzi/substrate.git'
 package = 'sr-primitives'
-rev = '6e67eff0653677d3d01980ca822c4b8a227914a3'
+branch = "brenzi-contract-replace-sr-io"
 
 [dependencies.safe-mix]
 default-features = false
@@ -92,40 +92,40 @@ version = '1.0'
 
 [dependencies.sudo]
 default_features = false
-git = 'https://github.com/paritytech/substrate.git'
+git = 'https://github.com/brenzi/substrate.git'
 package = 'srml-sudo'
-rev = '6e67eff0653677d3d01980ca822c4b8a227914a3'
+branch = "brenzi-contract-replace-sr-io"
 
 [dependencies.contract]
 default_features = false
-git = 'https://github.com/paritytech/substrate.git'
+git = 'https://github.com/brenzi/substrate.git'
 package = 'srml-contract'
-rev = '6e67eff0653677d3d01980ca822c4b8a227914a3'
+branch = "brenzi-contract-replace-sr-io"
 features = ["core"]
 
 [dependencies.support]
 default_features = false
-git = 'https://github.com/paritytech/substrate.git'
+git = 'https://github.com/brenzi/substrate.git'
 package = 'srml-support'
-rev = '6e67eff0653677d3d01980ca822c4b8a227914a3'
+branch = "brenzi-contract-replace-sr-io"
 
 [dependencies.system]
 default_features = false
-git = 'https://github.com/paritytech/substrate.git'
+git = 'https://github.com/brenzi/substrate.git'
 package = 'srml-system'
-rev = '6e67eff0653677d3d01980ca822c4b8a227914a3'
+branch = "brenzi-contract-replace-sr-io"
 
 [dependencies.timestamp]
 default_features = false
-git = 'https://github.com/paritytech/substrate.git'
+git = 'https://github.com/brenzi/substrate.git'
 package = 'srml-timestamp'
-rev = '6e67eff0653677d3d01980ca822c4b8a227914a3'
+branch = "brenzi-contract-replace-sr-io"
 
 [dependencies.version]
 default_features = false
-git = 'https://github.com/paritytech/substrate.git'
+git = 'https://github.com/brenzi/substrate.git'
 package = 'sr-version'
-rev = '6e67eff0653677d3d01980ca822c4b8a227914a3'
+branch = "brenzi-contract-replace-sr-io"
 
 [features]
 default = ['std']
