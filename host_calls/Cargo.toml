@@ -5,8 +5,8 @@ authors = ["Supercomputing Systems AG <info@scs.ch>"]
 edition = "2018"
 
 [dependencies]
-sgx_tcrypto     = { rev = "v1.0.8", git = "https://github.com/baidu/rust-sgx-sdk.git" }
-sgx_types       = { rev = "v1.0.8", git = "https://github.com/baidu/rust-sgx-sdk.git" }
+sgx_tcrypto     = { rev = "v1.0.9", git = "https://github.com/baidu/rust-sgx-sdk.git" }
+sgx_types       = { rev = "v1.0.9", git = "https://github.com/baidu/rust-sgx-sdk.git" }
 
 base64          = { version = "0.10" }
 bit-vec         = { version = "0.6"  }
