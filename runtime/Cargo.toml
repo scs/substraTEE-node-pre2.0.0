@@ -170,3 +170,6 @@ no_std = [
 [patch."https://github.com/paritytech/substrate"]
 sr-io = { package = "sr-io", path = "../sr-tee-io" }
 substrate-executor = { path = "../substratee-executor"}
+
+[patch.crates-io]
+rustls = { git = "https://github.com/mesalock-linux/rustls", rev="36995713775439e1a60a01cfa327e045a61020a6"}
