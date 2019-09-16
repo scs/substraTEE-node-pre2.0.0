@@ -20,7 +20,7 @@ serde_json      = { version = "1.0"  }
 serde_derive    = { version = "1.0"  }
 untrusted       = { version = "0.6"  }
 webpki          = { version = "0.21" }
-webpki-roots    = { version = "0.16" }
+webpki-roots    = { version = "0.17" }
 yasna           = { version = "0.3"  }
 
 [features]
