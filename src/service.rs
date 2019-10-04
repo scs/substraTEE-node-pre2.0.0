@@ -13,14 +13,14 @@ pub use substrate_executor::NativeExecutor;
 use substrate_service::{
     error::Error as ServiceError, AbstractService, Configuration, ServiceBuilder,
 };
-use substratee_node_runtime::{self, opaque::Block, GenesisConfig, RuntimeApi};
+use encointer_node_runtime::{self, opaque::Block, GenesisConfig, RuntimeApi};
 use transaction_pool::{self, txpool::Pool as TransactionPool};
 
 // Our native executor instance.
 native_executor_instance!(
 	pub Executor,
-	substratee_node_runtime::api::dispatch,
-	substratee_node_runtime::native_version,
+	encointer_node_runtime::api::dispatch,
+	encointer_node_runtime::native_version,
 );
 
 construct_simple_protocol! {
@@ -39,8 +39,8 @@ macro_rules! new_full_start {
         let mut tasks_to_spawn = None;
 
         let builder = substrate_service::ServiceBuilder::new_full::<
-            substratee_node_runtime::opaque::Block,
-            substratee_node_runtime::RuntimeApi,
+            encointer_node_runtime::opaque::Block,
+            encointer_node_runtime::RuntimeApi,
             crate::service::Executor,
         >($config)?
         .with_select_chain(|_config, backend| {
@@ -57,7 +57,7 @@ macro_rules! new_full_start {
                 .take()
                 .ok_or_else(|| substrate_service::Error::SelectChainRequired)?;
             let (block_import, link_half) =
-                grandpa::block_import::<_, _, _, substratee_node_runtime::RuntimeApi, _, _>(
+                grandpa::block_import::<_, _, _, encointer_node_runtime::RuntimeApi, _, _>(
                     client.clone(),
                     client.clone(),
                     select_chain,

@@ -12,13 +12,13 @@ pub use substrate_cli::{error, IntoExit, VersionInfo};
 
 fn main() {
     let version = VersionInfo {
-        name: "Substrate Node",
+        name: "Encointer Node",
         commit: env!("VERGEN_SHA_SHORT"),
         version: env!("CARGO_PKG_VERSION"),
-        executable_name: "substratee-node",
-        author: "Supercomputing Systems AG",
-        description: "substratee-node",
-        support_url: "support.anonymous.an",
+        executable_name: "encointer-node",
+        author: "encointer.org",
+        description: "encointer-node",
+        support_url: "encointer.org",
     };
 
     if let Err(e) = cli::run(::std::env::args(), cli::Exit, version) {

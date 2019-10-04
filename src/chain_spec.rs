@@ -2,10 +2,11 @@ use babe_primitives::AuthorityId as BabeId;
 use grandpa_primitives::AuthorityId as GrandpaId;
 use primitives::{Pair, Public};
 use substrate_service;
-use substratee_node_runtime::{
+use encointer_node_runtime::{
     AccountId, BabeConfig, BalancesConfig, GenesisConfig, GrandpaConfig, IndicesConfig, SudoConfig,
-    SystemConfig, WASM_BINARY,
+    SystemConfig, WASM_BINARY, EncointerCeremoniesConfig, CeremonyPhaseType
 };
+
 
 // Note this is the URL for the telemetry server
 //const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -146,6 +147,10 @@ fn testnet_genesis(
                 .iter()
                 .map(|x| (x.2.clone(), 1))
                 .collect(),
+        }),
+        encointer_ceremonies: Some(EncointerCeremoniesConfig {
+            //current_phase: CeremonyPhaseType::REGISTERING,
+            ceremony_reward: 1_000_000
         }),
     }
 }
