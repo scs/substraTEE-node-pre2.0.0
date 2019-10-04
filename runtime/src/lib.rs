@@ -36,6 +36,7 @@ pub use support::{StorageValue, construct_runtime, parameter_types, traits::Rand
 
 // Added by SCS
 pub use substratee_registry::Call as SubstraTEERegistryCall;
+pub use encointer_ceremonies::Call as EncointerCeremoniesCall;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -66,6 +67,7 @@ pub type DigestItem = generic::DigestItem<Hash>;
 
 // Added by SCS
 pub mod substratee_registry;
+pub mod encointer_ceremonies;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -94,10 +96,10 @@ pub mod opaque {
 /// This runtime version.
 pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("node"),
-	impl_name: create_runtime_str!("test-node"),
-	authoring_version: 1,
-	spec_version: 1,
-	impl_version: 1,
+	impl_name: create_runtime_str!("encointer-node"),
+	authoring_version: 3,
+	spec_version: 4,
+	impl_version: 4,
 	apis: RUNTIME_API_VERSIONS,
 };
 
@@ -238,6 +240,10 @@ impl substratee_registry::Trait for Runtime {
 }
 // --- end changed by SCS -------------------------------------------------
 
+impl encointer_ceremonies::Trait for Runtime {
+	type Event = Event;
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -252,10 +258,8 @@ construct_runtime!(
 		Balances: balances::{default, Error},
 		TransactionPayment: transaction_payment::{Module, Storage},
 		Sudo: sudo,
-		// --- start changed by SCS -----------------------------------------------
-		SubstraTEERegistry: substratee_registry::{Module, Call, Storage, Event<T>},
-		// --- end changed by SCS -------------------------------------------------
-		RandomnessCollectiveFlip: randomness_collective_flip::{Module, Call, Storage},
+        SubstraTEERegistry: substratee_registry::{Module, Call, Storage, Event<T>},
+		EncointerCeremonies: encointer_ceremonies::{Module, Call, Storage, Event<T>},
 	}
 );
 
