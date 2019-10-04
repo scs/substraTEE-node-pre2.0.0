@@ -38,6 +38,8 @@ pub use support::{StorageValue, construct_runtime, parameter_types, traits::Rand
 pub use substratee_registry::Call as SubstraTEERegistryCall;
 pub use encointer_ceremonies::Call as EncointerCeremoniesCall;
 
+pub use encointer_ceremonies::CeremonyPhaseType;
+
 /// An index to a block.
 pub type BlockNumber = u32;
 
@@ -259,7 +261,7 @@ construct_runtime!(
 		TransactionPayment: transaction_payment::{Module, Storage},
 		Sudo: sudo,
         SubstraTEERegistry: substratee_registry::{Module, Call, Storage, Event<T>},
-		EncointerCeremonies: encointer_ceremonies::{Module, Call, Storage, Event<T>},
+		EncointerCeremonies: encointer_ceremonies::{Module, Call, Storage, Config<T>, Event<T>},
 	}
 );
 

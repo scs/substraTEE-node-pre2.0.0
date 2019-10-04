@@ -2,14 +2,14 @@
 // - rename 'runtime' to substratee_node_runtime
 
 use primitives::{Pair, Public, sr25519};
-use substratee_node_runtime::{
-	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig,
-	SudoConfig, IndicesConfig, SystemConfig, WASM_BINARY, Signature
-};
+use encointer_node_runtime::{
+    AccountId, BabeConfig, BalancesConfig, GenesisConfig, GrandpaConfig, IndicesConfig, SudoConfig,
+    SystemConfig, WASM_BINARY, EncointerCeremoniesConfig, CeremonyPhaseType
 use aura_primitives::sr25519::{AuthorityId as AuraId};
 use grandpa_primitives::{AuthorityId as GrandpaId};
 use substrate_service;
 use sr_primitives::traits::{Verify, IdentifyAccount};
+
 
 // Note this is the URL for the telemetry server
 //const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -142,5 +142,9 @@ fn testnet_genesis(initial_authorities: Vec<(AuraId, GrandpaId)>,
 		grandpa: Some(GrandpaConfig {
 			authorities: initial_authorities.iter().map(|x| (x.1.clone(), 1)).collect(),
 		}),
+	    encointer_ceremonies: Some(EncointerCeremoniesConfig {
+            //current_phase: CeremonyPhaseType::REGISTERING,
+            ceremony_reward: 1_000_000
+        }),
 	}
 }

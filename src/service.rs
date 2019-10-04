@@ -16,12 +16,13 @@ pub use substrate_executor::NativeExecutor;
 use aura_primitives::sr25519::{AuthorityPair as AuraPair};
 use grandpa::{self, FinalityProofProvider as GrandpaFinalityProofProvider};
 use basic_authorship;
+use encointer_node_runtime::{self, opaque::Block, GenesisConfig, RuntimeApi};
 
 // Our native executor instance.
 native_executor_instance!(
 	pub Executor,
-	substratee_node_runtime::api::dispatch,
-	substratee_node_runtime::native_version,
+	encointer_node_runtime::api::dispatch,
+	encointer_node_runtime::native_version,
 	// Added by SCS
 	runtime_interfaces::HostFunctions
 );
@@ -41,7 +42,9 @@ macro_rules! new_full_start {
 		let inherent_data_providers = inherents::InherentDataProviders::new();
 
 		let builder = substrate_service::ServiceBuilder::new_full::<
-			substratee_node_runtime::opaque::Block, substratee_node_runtime::RuntimeApi, crate::service::Executor
+			encointer_node_runtime::opaque::Block,
+            encointer_node_runtime::RuntimeApi, 
+			crate::service::Executor
 		>($config)?
 			.with_select_chain(|_config, backend| {
 				Ok(substrate_client::LongestChain::new(backend.clone()))
@@ -54,7 +57,7 @@ macro_rules! new_full_start {
 					.ok_or_else(|| substrate_service::Error::SelectChainRequired)?;
 
 				let (grandpa_block_import, grandpa_link) =
-					grandpa::block_import::<_, _, _, substratee_node_runtime::RuntimeApi, _>(
+					grandpa::block_import::<_, _, _, encointer_node_runtime::RuntimeApi, _>(
 						client.clone(), &*client, select_chain
 					)?;
 

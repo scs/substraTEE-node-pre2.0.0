@@ -20,6 +20,9 @@ use rstd::vec::Vec;
 
 use codec::{Codec, Encode, Decode};
 
+#[cfg(feature = "std")]
+use serde::{Serialize, Deserialize};
+
 /// The module's configuration trait.
 pub trait Trait: system::Trait + balances::Trait {
 	// TODO: Add other types and constants required configure this module.
@@ -34,7 +37,7 @@ pub type MeetupIndexType = u64;
 pub type WitnessIndexType = u64;
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "std", derive(Debug))]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize, Debug))]
 pub enum CeremonyPhaseType {
 	REGISTERING, 
 	ASSIGNING,
@@ -64,9 +67,9 @@ decl_storage! {
 
 		CurrentCeremonyIndex get(current_ceremony_index): CeremonyIndexType;
 		LastCeremonyBlock get(last_ceremony_block): T::BlockNumber;
-		CurrentPhase get(current_phase): CeremonyPhaseType;
+		CurrentPhase get(current_phase): CeremonyPhaseType = CeremonyPhaseType::REGISTERING;
 
-		CeremonyReward get(ceremony_reward): T::Balance;
+		CeremonyReward get(ceremony_reward) config(): T::Balance;
 	}
 }
 
