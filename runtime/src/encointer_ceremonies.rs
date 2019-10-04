@@ -127,13 +127,33 @@ impl<T: Trait> Module<T> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-
+	
+	use std::{collections::HashSet, cell::RefCell};
 	use runtime_io::with_externalities;
 	use primitives::{H256, Blake2Hasher};
 	use support::{impl_outer_origin, assert_ok, parameter_types};
-	use sr_primitives::{traits::{BlakeTwo256, IdentityLookup}, testing::Header};
-	use sr_primitives::weights::Weight;
-	use sr_primitives::Perbill;
+	use support::traits::{Currency, Get, FindAuthor, LockIdentifier};
+	use runtime_primitives::{traits::{BlakeTwo256, IdentityLookup}, testing::Header};
+	use runtime_primitives::weights::Weight;
+	use runtime_primitives::Perbill;
+
+	const ID_1: LockIdentifier = *b"1       ";
+	const ID_2: LockIdentifier = *b"2       ";
+	const ID_3: LockIdentifier = *b"3       ";
+	
+	thread_local! {
+		static EXISTENTIAL_DEPOSIT: RefCell<u64> = RefCell::new(0);
+	}
+	pub type AccountId = u64;
+	pub type BlockNumber = u64;
+	pub type Balance = u64;
+	pub struct ExistentialDeposit;
+	impl Get<u64> for ExistentialDeposit {
+		fn get() -> u64 {
+			EXISTENTIAL_DEPOSIT.with(|v| *v.borrow())
+		}
+	}
+
 
 	impl_outer_origin! {
 		pub enum Origin for Test {}
@@ -168,10 +188,33 @@ mod tests {
 		type AvailableBlockRatio = AvailableBlockRatio;
 		type Version = ();
 	}
+	parameter_types! {
+		pub const TransferFee: Balance = 0;
+		pub const CreationFee: Balance = 0;
+		pub const TransactionBaseFee: u64 = 0;
+		pub const TransactionByteFee: u64 = 0;
+	}
+	impl balances::Trait for Test {
+		type Balance = Balance;
+		type OnFreeBalanceZero = ();
+		type OnNewAccount = ();
+		type Event = ();
+		type TransactionPayment = ();
+		type TransferPayment = ();
+		type DustRemoval = ();
+		type ExistentialDeposit = ExistentialDeposit;
+		type TransferFee = TransferFee;
+		type CreationFee = CreationFee;
+		type TransactionBaseFee = TransactionBaseFee;
+		type TransactionByteFee = TransactionByteFee;
+		type WeightToFee = ();
+	}
+
+
 	impl Trait for Test {
 		type Event = ();
 	}
-	type TemplateModule = Module<Test>;
+	type EncointerCeremonies = Module<Test>;
 
 	// This function basically just builds a genesis storage key/value store according to
 	// our desired mockup.
@@ -180,13 +223,17 @@ mod tests {
 	}
 
 	#[test]
-	fn it_works_for_default_value() {
+	fn ceremony_phase_statemachine_works() {
 		with_externalities(&mut new_test_ext(), || {
-			// Just a dummy test for the dummy funtion `do_something`
-			// calling the `do_something` function with a value 42
-			assert_ok!(TemplateModule::do_something(Origin::signed(1), 42));
-			// asserting that the stored value is equal to what we stored
-			assert_eq!(TemplateModule::something(), Some(42));
+
+			assert_eq!(EncointerCeremonies::current_phase(), CeremonyPhaseType::REGISTERING);
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(1)));
+			assert_eq!(EncointerCeremonies::current_phase(), CeremonyPhaseType::ASSIGNING);
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(1)));
+			assert_eq!(EncointerCeremonies::current_phase(), CeremonyPhaseType::WITNESSING);
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(1)));
+			assert_eq!(EncointerCeremonies::current_phase(), CeremonyPhaseType::REGISTERING);
+						
 		});
 	}
 }

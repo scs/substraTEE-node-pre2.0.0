@@ -177,6 +177,7 @@ impl<T: Trait> Module<T> {
     }
 }
 
+/*
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -375,3 +376,4 @@ mod tests {
     }
 }
 
+*/
