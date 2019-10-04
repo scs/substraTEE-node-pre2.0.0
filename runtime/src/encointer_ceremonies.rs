@@ -15,7 +15,7 @@
 use support::{decl_module, decl_storage, decl_event, 
 	storage::{StorageDoubleMap, StorageMap, StorageValue},
 	dispatch::Result};
-use system::ensure_signed;
+use system::{ensure_signed, ensure_root};
 use rstd::vec::Vec;
 
 use codec::{Codec, Encode, Decode};
@@ -76,7 +76,9 @@ decl_storage! {
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 		fn deposit_event() = default;
+
 		fn next_phase(origin) -> Result {
+			ensure_root(origin)?;
 			let current_phase = <CurrentPhase>::get();
 			let current_ceremony_index = <CurrentCeremonyIndex>::get();
 
@@ -102,6 +104,18 @@ decl_module! {
 			Self::deposit_event(RawEvent::PhaseChangedTo(next_phase));
 			Ok(())
 		}
+
+		fn register_participant(origin) -> Result {
+			ensure_signed(origin)?;
+			let count = <ParticipantCount>::get();
+			let new_count = match count.checked_add(1) {
+							Some(v) => v,
+							None => return Err("got overflow after adding one more participant"),
+						};
+			<ParticipantCount>::put(new_count);
+			Ok(())
+		}
+
 	}
 }
 
@@ -117,6 +131,7 @@ impl<T: Trait> Module<T> {
 	fn purge_registry(index: CeremonyIndexType) -> Result {
 		<ParticipantRegistry<T>>::remove_prefix(&index);
 		<ParticipantIndex<T>>::remove_prefix(&index);
+		<ParticipantCount>::put(0);
 		Ok(())
 	}
 }
@@ -210,10 +225,10 @@ mod tests {
 		type WeightToFee = ();
 	}
 
-
 	impl Trait for Test {
 		type Event = ();
 	}
+
 	type EncointerCeremonies = Module<Test>;
 
 	// This function basically just builds a genesis storage key/value store according to
@@ -227,13 +242,25 @@ mod tests {
 		with_externalities(&mut new_test_ext(), || {
 
 			assert_eq!(EncointerCeremonies::current_phase(), CeremonyPhaseType::REGISTERING);
-			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(1)));
+			assert_eq!(EncointerCeremonies::current_ceremony_index(), 0);
+			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
 			assert_eq!(EncointerCeremonies::current_phase(), CeremonyPhaseType::ASSIGNING);
-			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(1)));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
 			assert_eq!(EncointerCeremonies::current_phase(), CeremonyPhaseType::WITNESSING);
-			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(1)));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
 			assert_eq!(EncointerCeremonies::current_phase(), CeremonyPhaseType::REGISTERING);
-						
+			assert_eq!(EncointerCeremonies::current_ceremony_index(), 1);						
 		});
 	}
+
+	#[test]
+	fn registering_participant_works() {
+		with_externalities(&mut new_test_ext(), || {
+			assert_eq!(EncointerCeremonies::participant_count(), 0);
+			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(1)));
+			assert_eq!(EncointerCeremonies::participant_count(), 1);
+
+		});
+	}
+
 }
