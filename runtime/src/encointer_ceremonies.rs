@@ -1,55 +1,102 @@
-/// A runtime module template with necessary imports
+//  Copyright (c) 2019 Alain Brenzikofer
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//       http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
 
-/// Feel free to remove or edit this file as needed.
-/// If you change the name of this file, make sure to update its references in runtime/src/lib.rs
-/// If you remove this file, you can remove those references
-
-
-/// For more guidance on Substrate modules, see the example module
-/// https://github.com/paritytech/substrate/blob/master/srml/example/src/lib.rs
-
-use support::{decl_module, decl_storage, decl_event, StorageValue, dispatch::Result};
+use support::{decl_module, decl_storage, decl_event, 
+	storage::{StorageDoubleMap, StorageMap, StorageValue},
+	dispatch::Result};
 use system::ensure_signed;
+use rstd::vec::Vec;
+
+use codec::{Codec, Encode, Decode};
 
 /// The module's configuration trait.
-pub trait Trait: system::Trait {
+pub trait Trait: system::Trait + balances::Trait {
 	// TODO: Add other types and constants required configure this module.
 
 	/// The overarching event type.
 	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 }
 
+pub type CeremonyIndexType = u32;
+pub type ParticipantIndexType = u64;
+pub type MeetupIndexType = u64;
+pub type WitnessIndexType = u64;
+
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "std", derive(Debug))]
+pub enum CeremonyPhaseType {
+	REGISTERING, 
+	ASSIGNING,
+	WITNESSING, 	
+}
+impl Default for CeremonyPhaseType {
+    fn default() -> Self { CeremonyPhaseType::REGISTERING }
+}
+
 // This module's storage items.
 decl_storage! {
-	trait Store for Module<T: Trait> as TemplateModule {
-		// Just a dummy storage item.
-		// Here we are declaring a StorageValue, `Something` as a Option<u32>
-		// `get(something)` is the default getter which returns either the stored `u32` or `None` if nothing stored
-		Something get(something): Option<u32>;
+	trait Store for Module<T: Trait> as EncointerCeremonies {
+		// everyone who registered for a ceremony
+		ParticipantRegistry: double_map CeremonyIndexType, twox_128(ParticipantIndexType) => T::AccountId;
+		ParticipantIndex: double_map CeremonyIndexType, twox_128(T::AccountId) => ParticipantIndexType;
+		ParticipantCount get(participant_count): ParticipantIndexType;
+
+		// all meetups for each ceremony mapping to a vec of participants
+		MeetupRegistry: double_map CeremonyIndexType, twox_128(MeetupIndexType) => Vec<T::AccountId>;
+		MeetupIndex: double_map CeremonyIndexType, twox_128(T::AccountId) => MeetupIndexType;
+		MeetupCount get(meetup_count): MeetupIndexType;
+
+		// collect fellow meetup participants accounts who witnessed key account
+		WitnessRegistry: double_map CeremonyIndexType, twox_128(WitnessIndexType) => Vec<T::AccountId>;
+		WitnessIndex: double_map CeremonyIndexType, twox_128(T::AccountId) => WitnessIndexType;
+		WitnessCount get(witness_count): WitnessIndexType;
+
+		CurrentCeremonyIndex get(current_ceremony_index): CeremonyIndexType;
+		LastCeremonyBlock get(last_ceremony_block): T::BlockNumber;
+		CurrentPhase get(current_phase): CeremonyPhaseType;
+
+		CeremonyReward get(ceremony_reward): T::Balance;
 	}
 }
 
-// The module's dispatchable functions.
 decl_module! {
-	/// The module declaration.
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
-		// Initializing events
-		// this is needed only if you are using events in your module
 		fn deposit_event() = default;
+		fn next_phase(origin) -> Result {
+			let current_phase = <CurrentPhase>::get();
+			let current_ceremony_index = <CurrentCeremonyIndex>::get();
 
-		// Just a dummy entry point.
-		// function that can be called by the external world as an extrinsics call
-		// takes a parameter of the type `AccountId`, stores it and emits an event
-		pub fn do_something(origin, something: u32) -> Result {
-			// TODO: You only need this if you want to check it was signed.
-			let who = ensure_signed(origin)?;
+			let next_phase = match current_phase {
+				CeremonyPhaseType::REGISTERING => {
+						CeremonyPhaseType::ASSIGNING
+				},
+				CeremonyPhaseType::ASSIGNING => {
+						CeremonyPhaseType::WITNESSING
+				},
+				CeremonyPhaseType::WITNESSING => {
+						let next_ceremony_index = match current_ceremony_index.checked_add(1) {
+							Some(v) => v,
+							None => 0, //deliberate wraparound
+						};
+						Self::purge_registry(current_ceremony_index);
+						<CurrentCeremonyIndex>::put(next_ceremony_index);									
+						CeremonyPhaseType::REGISTERING
+				},
+			};
 
-			// TODO: Code to execute when something calls this.
-			// For example: the following line stores the passed in u32 in the storage
-			Something::put(something);
-
-			// here we are raising the Something event
-			Self::deposit_event(RawEvent::SomethingStored(something, who));
+			<CurrentPhase>::put(next_phase);
+			Self::deposit_event(RawEvent::PhaseChangedTo(next_phase));
 			Ok(())
 		}
 	}
@@ -57,12 +104,21 @@ decl_module! {
 
 decl_event!(
 	pub enum Event<T> where AccountId = <T as system::Trait>::AccountId {
-		// Just a dummy event.
-		// Event `Something` is declared with a parameter of the type `u32` and `AccountId`
-		// To emit this event, we call the deposit funtion, from our runtime funtions
-		SomethingStored(u32, AccountId),
+		PhaseChangedTo(CeremonyPhaseType),
+		ParticipantRegistered(AccountId),
 	}
 );
+
+
+impl<T: Trait> Module<T> {
+	fn purge_registry(index: CeremonyIndexType) -> Result {
+		<ParticipantRegistry<T>>::remove_prefix(&index);
+		<ParticipantIndex<T>>::remove_prefix(&index);
+		Ok(())
+	}
+}
+
+
 
 /// tests for this module
 #[cfg(test)]
