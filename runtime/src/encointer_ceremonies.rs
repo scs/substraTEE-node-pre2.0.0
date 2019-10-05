@@ -16,7 +16,9 @@ use support::{decl_module, decl_storage, decl_event, ensure,
 	storage::{StorageDoubleMap, StorageMap, StorageValue},
 	dispatch::Result};
 use system::{ensure_signed, ensure_root};
-use rstd::vec::Vec;
+
+use rstd::prelude::*;
+use rstd::cmp::min;
 
 use codec::{Codec, Encode, Decode};
 
@@ -30,6 +32,8 @@ pub trait Trait: system::Trait + balances::Trait {
 	/// The overarching event type.
 	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 }
+
+const SINGLE_MEETUP_INDEX: u64 = 42;
 
 pub type CeremonyIndexType = u32;
 pub type ParticipantIndexType = u64;
@@ -56,13 +60,13 @@ decl_storage! {
 		ParticipantCount get(participant_count): ParticipantIndexType;
 
 		// all meetups for each ceremony mapping to a vec of participants
-		MeetupRegistry: double_map CeremonyIndexType, twox_128(MeetupIndexType) => Vec<T::AccountId>;
-		MeetupIndex: double_map CeremonyIndexType, twox_128(T::AccountId) => MeetupIndexType;
+		MeetupRegistry get(meetup_registry): double_map CeremonyIndexType, twox_128(MeetupIndexType) => Vec<T::AccountId>;
+		MeetupIndex get(meetup_index): double_map CeremonyIndexType, twox_128(T::AccountId) => MeetupIndexType;
 		MeetupCount get(meetup_count): MeetupIndexType;
 
 		// collect fellow meetup participants accounts who witnessed key account
-		WitnessRegistry: double_map CeremonyIndexType, twox_128(WitnessIndexType) => Vec<T::AccountId>;
-		WitnessIndex: double_map CeremonyIndexType, twox_128(T::AccountId) => WitnessIndexType;
+		WitnessRegistry get(witness_registry): double_map CeremonyIndexType, twox_128(WitnessIndexType) => Vec<T::AccountId>;
+		WitnessIndex get(witness_index): double_map CeremonyIndexType, twox_128(T::AccountId) => WitnessIndexType;
 		WitnessCount get(witness_count): WitnessIndexType;
 
 		CurrentCeremonyIndex get(current_ceremony_index): CeremonyIndexType;
@@ -84,6 +88,7 @@ decl_module! {
 
 			let next_phase = match current_phase {
 				CeremonyPhaseType::REGISTERING => {
+						Self::assign_meetups();
 						CeremonyPhaseType::ASSIGNING
 				},
 				CeremonyPhaseType::ASSIGNING => {
@@ -144,6 +149,28 @@ impl<T: Trait> Module<T> {
 		<ParticipantRegistry<T>>::remove_prefix(&index);
 		<ParticipantIndex<T>>::remove_prefix(&index);
 		<ParticipantCount>::put(0);
+		<MeetupRegistry<T>>::remove_prefix(&index);
+		<MeetupIndex<T>>::remove_prefix(&index);
+		<MeetupCount>::put(0);
+
+		Ok(())
+	}
+
+	fn assign_meetups() -> Result {
+		// for PoC1 we're assigning one single meetup with the first 12 participants only
+		//ensure!(<CurrentPhase>::get() == CeremonyPhaseType::ASSIGNING,
+		//		"registering meetups can only be done during ASSIGNING phase");
+		let cindex = <CurrentCeremonyIndex>::get();		
+		let pcount = <ParticipantCount>::get();		
+		let mut meetup = vec!();
+		
+		for p in 0..min(pcount, 11) {
+			let participant = <ParticipantRegistry<T>>::get(&cindex, &p);
+			meetup.insert(p as usize, participant.clone());
+			<MeetupIndex<T>>::insert(&cindex, &participant, &SINGLE_MEETUP_INDEX);
+		}
+		<MeetupRegistry<T>>::insert(&cindex, &SINGLE_MEETUP_INDEX, &meetup);
+		<MeetupCount>::put(1);		
 		Ok(())
 	}
 }
@@ -164,9 +191,7 @@ mod tests {
 	use runtime_primitives::weights::Weight;
 	use runtime_primitives::Perbill;
 
-	const ID_1: LockIdentifier = *b"1       ";
-	const ID_2: LockIdentifier = *b"2       ";
-	const ID_3: LockIdentifier = *b"3       ";
+	const NONE: u64 = 0;
 	
 	thread_local! {
 		static EXISTENTIAL_DEPOSIT: RefCell<u64> = RefCell::new(0);
@@ -328,4 +353,43 @@ mod tests {
 		});
 	}
 
+	#[test]
+	fn assigning_meetup_works() {
+		with_externalities(&mut new_test_ext(), || {
+			let tom = 1u64;
+			let rudi = 2u64;
+			let sven = 3u64;
+			let cindex = 0;
+			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(tom)));
+			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(rudi)));
+			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(sven)));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_ok!(EncointerCeremonies::assign_meetups());
+			assert_eq!(EncointerCeremonies::meetup_count(), 1);
+			let meetup = EncointerCeremonies::meetup_registry(&cindex, &SINGLE_MEETUP_INDEX);
+			assert_eq!(meetup.len(), 3);
+			assert!(meetup.contains(&tom));
+			assert!(meetup.contains(&rudi));
+			assert!(meetup.contains(&sven));
+
+			assert_eq!(EncointerCeremonies::meetup_index(&cindex, &tom), SINGLE_MEETUP_INDEX);
+			assert_eq!(EncointerCeremonies::meetup_index(&cindex, &rudi), SINGLE_MEETUP_INDEX);
+			assert_eq!(EncointerCeremonies::meetup_index(&cindex, &sven), SINGLE_MEETUP_INDEX);
+
+		});
+	}
+	#[test]
+	fn assigning_meetup_at_phase_change_and_purge_works() {
+		with_externalities(&mut new_test_ext(), || {
+			let tom = 1u64;
+			let cindex = 0;
+			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(tom)));
+			assert_eq!(EncointerCeremonies::meetup_index(&cindex, &tom), NONE);
+			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_eq!(EncointerCeremonies::meetup_index(&cindex, &tom), SINGLE_MEETUP_INDEX);
+			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_eq!(EncointerCeremonies::meetup_index(&cindex, &tom), NONE);
+		});
+	}
 }
