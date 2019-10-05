@@ -20,6 +20,8 @@ use system::{ensure_signed, ensure_root};
 use rstd::prelude::*;
 use rstd::cmp::min;
 
+use primitives::sr25519::{Signature, Public};
+
 use codec::{Codec, Encode, Decode};
 
 #[cfg(feature = "std")]
@@ -49,6 +51,22 @@ pub enum CeremonyPhaseType {
 }
 impl Default for CeremonyPhaseType {
     fn default() -> Self { CeremonyPhaseType::REGISTERING }
+}
+
+#[derive(Encode, Decode, Clone, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "std", derive(Debug))]
+pub struct Witness {
+	claim: ClaimOfAttendance,
+	signature: Signature,
+	public: Public,
+}
+
+#[derive(Encode, Decode, Clone, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "std", derive(Debug))]
+pub struct ClaimOfAttendance {
+	claimant_public: Public,
+	ceremony_index: CeremonyIndexType,
+	meetup_index: MeetupIndexType,
 }
 
 // This module's storage items.
@@ -133,6 +151,40 @@ decl_module! {
 			Ok(())
 		}
 
+		fn register_witnesses(origin, witnesses: Vec<Witness>) -> Result {
+			let sender = ensure_signed(origin)?;
+			let cindex = <CurrentCeremonyIndex>::get();
+			let meetup_index = Self::meetup_index(&cindex, &sender);
+			let mut meetup_participants = Self::meetup_registry(&cindex, &meetup_index);
+			ensure!(meetup_participants.contains(&sender), "origin not part of this meetup");
+			meetup_participants.remove_item(&sender);
+			let num_registered = meetup_participants.len();
+			let num_signed = witnesses.len();
+			ensure!(num_signed <= num_registered, "can't have more witnesses than meetup participants");
+			let mut verified_witness_accounts = vec!();
+			for w in 0..num_signed {
+				let witness = &witnesses[w];
+				let witness_account = T::AccountId::from(witnesses[w].public);
+				if meetup_participants.contains(&witness_account) == false { continue };
+				if witness.claim.ceremony_index != cindex { continue };
+				if witness.claim.meetup_index != meetup_index { continue };
+				if Self::verify_witness_signature(*witness).is_err() { continue };
+				// witness is legit
+				verified_witness_accounts.insert(0, witness_account);
+			}
+			if verified_witness_accounts.len() == 0 {
+				return Err("no valid witnesses found");
+			}
+
+			let count = <WitnessCount>::get();
+			let new_count = count.checked_add(1).
+            	ok_or("[EncointerCeremonies]: Overflow adding new witness to registry")?;
+			<WitnessRegistry<T>>::insert(&cindex, &count, &verified_witness_accounts);
+			<WitnessIndex<T>>::insert(&cindex, &sender, &count);
+			<WitnessCount>::put(new_count);
+			Ok(())
+		}
+
 	}
 }
 
@@ -173,6 +225,18 @@ impl<T: Trait> Module<T> {
 		<MeetupCount>::put(1);		
 		Ok(())
 	}
+
+	fn verify_witness_signature(witness: Witness) -> Result {
+		ensure!(witness.public != witness.claim.claimant_public, "witness may not be self-signed");
+		match runtime_io::sr25519_verify(
+			&witness.signature, 
+			&witness.claim.encode(),
+			&witness.public) 
+		{
+			true => Ok(()),
+			false => Err("witness signature is invalid")
+		}
+	}
 }
 
 
@@ -190,6 +254,9 @@ mod tests {
 	use runtime_primitives::{traits::{BlakeTwo256, IdentityLookup}, testing::Header};
 	use runtime_primitives::weights::Weight;
 	use runtime_primitives::Perbill;
+
+	use primitives::crypto::{KeyTypeId, Ss58Codec, DEV_PHRASE, DEV_ADDRESS, Pair};
+	use primitives::sr25519;
 
 	const NONE: u64 = 0;
 	
@@ -363,7 +430,7 @@ mod tests {
 			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(tom)));
 			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(rudi)));
 			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(sven)));
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			//assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
 			assert_ok!(EncointerCeremonies::assign_meetups());
 			assert_eq!(EncointerCeremonies::meetup_count(), 1);
 			let meetup = EncointerCeremonies::meetup_registry(&cindex, &SINGLE_MEETUP_INDEX);
@@ -392,4 +459,79 @@ mod tests {
 			assert_eq!(EncointerCeremonies::meetup_index(&cindex, &tom), NONE);
 		});
 	}
+
+	#[test]
+	fn witnessing_one_source_works() {
+		with_externalities(&mut new_test_ext(), || {
+			let tom = 1u64;
+			let rudi = 2u64;
+			let sven = 3u64;
+			let cindex = 0;
+			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(tom)));
+			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(rudi)));
+			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(sven)));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_eq!(EncointerCeremonies::meetup_index(&cindex, &tom), SINGLE_MEETUP_INDEX);
+			let tom_pair: sr25519::Pair = Pair::from_string(&format!("{}//Rudi", DEV_PHRASE), Some("password")).unwrap();
+			let tom_public = tom_pair.public();
+			let msg = "I'm tom".as_bytes();
+			let rudi_pair: sr25519::Pair = Pair::from_string(&format!("{}//Rudi", DEV_PHRASE), Some("password")).unwrap();
+			let rudi_public = rudi_pair.public();
+			let signature = rudi_pair.sign(&msg[..]);
+			assert!(sr25519::Pair::verify(&signature, &msg[..], &rudi_public));
+			assert!(false);
+		});
+	}
+
+	#[test]
+	fn verify_witness_signatue_works() {
+		with_externalities(&mut new_test_ext(), || {
+			
+			let claimant_pair: sr25519::Pair = Pair::from_string(&format!("{}//Claimant", DEV_PHRASE), Some("password")).unwrap();
+			let witness_pair: sr25519::Pair = Pair::from_string(&format!("{}//Witness", DEV_PHRASE), Some("password")).unwrap();
+
+			let claim = ClaimOfAttendance {
+				claimant_public: claimant_pair.public(),
+				ceremony_index: 0,
+				meetup_index: SINGLE_MEETUP_INDEX,
+			};
+			let witness_good = Witness { 
+				claim: claim.clone(),
+				signature: witness_pair
+					.sign(&claim.encode()),
+				public: witness_pair.public().clone(),
+			};
+			let witness_wrong_signature = Witness { 
+				claim: claim.clone(),
+				signature: claimant_pair
+					.sign(&claim.encode()),
+				public: witness_pair.public().clone(),
+			};
+			let witness_wrong_signer = Witness { 
+				claim: claim.clone(),
+				signature: claimant_pair
+					.sign(&claim.encode()),
+				public: claimant_pair.public().clone(),
+			};
+			assert_ok!(EncointerCeremonies::verify_witness_signature(witness_good));
+			assert!(EncointerCeremonies::verify_witness_signature(witness_wrong_signature).is_err());
+			assert!(EncointerCeremonies::verify_witness_signature(witness_wrong_signer).is_err());
+		});
+	}
+
+	/*
+	#[test]
+	fn verify_witness_works() {
+		with_externalities(&mut new_test_ext(), || {
+			let msg = "I'm tom".as_bytes();
+			let rudi_pair: sr25519::Pair = Pair::from_string(&format!("{}//Rudi", DEV_PHRASE), Some("password")).unwrap();
+			let rudi_public = rudi_pair.public();
+			let signature = rudi_pair.sign(&msg[..]);
+			assert_ok!(EncointerCeremonies::verify_witness(signature.clone(), &msg[..], rudi_public.clone()));
+			let sven_pair: sr25519::Pair = Pair::from_string(&format!("{}//Sven", DEV_PHRASE), Some("password")).unwrap();
+			let sven_public = sven_pair.public();
+			assert!(EncointerCeremonies::verify_witness(signature.clone(), &msg[..], sven_public.clone()).is_err());
+		});
+	}
+*/
 }
