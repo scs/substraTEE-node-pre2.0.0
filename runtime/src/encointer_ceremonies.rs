@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-use support::{decl_module, decl_storage, decl_event, 
+use support::{decl_module, decl_storage, decl_event, ensure,
 	storage::{StorageDoubleMap, StorageMap, StorageValue},
 	dispatch::Result};
 use system::{ensure_signed, ensure_root};
@@ -51,8 +51,8 @@ impl Default for CeremonyPhaseType {
 decl_storage! {
 	trait Store for Module<T: Trait> as EncointerCeremonies {
 		// everyone who registered for a ceremony
-		ParticipantRegistry: double_map CeremonyIndexType, twox_128(ParticipantIndexType) => T::AccountId;
-		ParticipantIndex: double_map CeremonyIndexType, twox_128(T::AccountId) => ParticipantIndexType;
+		ParticipantRegistry get(participant_registry): double_map CeremonyIndexType, twox_128(ParticipantIndexType) => T::AccountId;
+		ParticipantIndex get(participant_index): double_map CeremonyIndexType, twox_128(T::AccountId) => ParticipantIndexType;
 		ParticipantCount get(participant_count): ParticipantIndexType;
 
 		// all meetups for each ceremony mapping to a vec of participants
@@ -106,13 +106,25 @@ decl_module! {
 		}
 
 		fn register_participant(origin) -> Result {
-			ensure_signed(origin)?;
+			let sender = ensure_signed(origin)?;
+			ensure!(<CurrentPhase>::get() == CeremonyPhaseType::REGISTERING,
+				"registering participants can only be done during REGISTERING phase");
+
+			let cindex = <CurrentCeremonyIndex>::get();
+
+			if <ParticipantIndex<T>>::exists(&cindex, &sender) {
+				return Err("already registered participant")
+			}
+
 			let count = <ParticipantCount>::get();
-			let new_count = match count.checked_add(1) {
-							Some(v) => v,
-							None => return Err("got overflow after adding one more participant"),
-						};
+			
+			let new_count = count.checked_add(1).
+            	ok_or("[EncointerCeremonies]: Overflow adding new participant to registry")?;
+
+			<ParticipantRegistry<T>>::insert(&cindex, &count, &sender);
+			<ParticipantIndex<T>>::insert(&cindex, &sender, &count);
 			<ParticipantCount>::put(new_count);
+
 			Ok(())
 		}
 
@@ -256,10 +268,63 @@ mod tests {
 	#[test]
 	fn registering_participant_works() {
 		with_externalities(&mut new_test_ext(), || {
+			
+			let cindex = EncointerCeremonies::current_ceremony_index();
+			let tom = 1u64;
+			let rudi = 2u64;
 			assert_eq!(EncointerCeremonies::participant_count(), 0);
-			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(1)));
+			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(tom)));
 			assert_eq!(EncointerCeremonies::participant_count(), 1);
+			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(rudi)));
+			assert_eq!(EncointerCeremonies::participant_count(), 2);
+			assert_eq!(EncointerCeremonies::participant_index(&cindex, &rudi), 1);
+			assert_eq!(EncointerCeremonies::participant_registry(&cindex, &0), tom);
+			assert_eq!(EncointerCeremonies::participant_registry(&cindex, &1), rudi);
+		});
+	}
 
+	#[test]
+	fn registering_participant_twice_fails() {
+		with_externalities(&mut new_test_ext(), || {
+			let tom = 1u64;
+			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(tom)));
+			assert!(EncointerCeremonies::register_participant(Origin::signed(tom)).is_err());
+		});
+	}
+
+	#[test]
+	fn ceremony_index_and_purging_registry_works() {
+		with_externalities(&mut new_test_ext(), || {
+			
+			let cindex = EncointerCeremonies::current_ceremony_index();
+			let tom = 1u64;
+			let none = 0u64;
+			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(tom)));
+			assert_eq!(EncointerCeremonies::participant_registry(&cindex, &0), tom);
+			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			// now assigning
+			assert_eq!(EncointerCeremonies::participant_registry(&cindex, &0), tom);
+			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			// now witnessing
+			assert_eq!(EncointerCeremonies::participant_registry(&cindex, &0), tom);
+			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			// now again registering
+			let new_cindex = EncointerCeremonies::current_ceremony_index();
+			assert_eq!(new_cindex, cindex+1);
+			assert_eq!(EncointerCeremonies::participant_count(), 0);
+			assert_eq!(EncointerCeremonies::participant_registry(&cindex, &0), none);
+			assert_eq!(EncointerCeremonies::participant_registry(&cindex, &tom), none);
+		});
+	}
+
+	#[test]
+	fn registering_participant_in_wrong_phase_fails() {
+		with_externalities(&mut new_test_ext(), || {
+			
+			let tom = 1u64;
+			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_eq!(EncointerCeremonies::current_phase(), CeremonyPhaseType::ASSIGNING);
+			assert!(EncointerCeremonies::register_participant(Origin::signed(tom)).is_err());
 		});
 	}
 
