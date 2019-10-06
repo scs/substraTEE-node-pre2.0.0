@@ -29,7 +29,9 @@ rev = "9b08e7ff938a45dbec7fcdb854063202e2b0cb48"
 
 [dependencies.runtime-io]
 default-features = false
-path = '../sr-tee-io'
+#path = '../sr-tee-io'
+git = "https://github.com/paritytech/substrate"
+rev = "9b08e7ff938a45dbec7fcdb854063202e2b0cb48"
 package = 'sr-io'
 
 [dependencies.version]
@@ -145,7 +147,8 @@ rev = "9b08e7ff938a45dbec7fcdb854063202e2b0cb48"
 wasm-builder-runner = { package = "substrate-wasm-builder-runner", version = "1.0.3" }
 
 [features]
-default = ["std", "enable_host_calls"]
+#default = ["std", "enable_host_calls"]
+default = ["std"]
 std = [
     "codec/std",
     "client/std",
@@ -180,12 +183,12 @@ no_oom = [
 ]
 
 enable_host_calls = [
-    "runtime-io/enable_host_calls",
+#    "runtime-io/enable_host_calls",
 ]
 
 no_std = [
 ]
 
-[patch."https://github.com/paritytech/substrate"]
-sr-io = { package = "sr-io", path = "../sr-tee-io", default-features = false}
-substrate-executor = { path = "../substratee-executor", default-features = false}
+#[patch."https://github.com/paritytech/substrate"]
+#sr-io = { package = "sr-io", path = "../sr-tee-io", default-features = false}
+#substrate-executor = { path = "../substratee-executor", default-features = false}
