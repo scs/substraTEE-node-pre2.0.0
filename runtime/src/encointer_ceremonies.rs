@@ -20,19 +20,16 @@ use system::{ensure_signed, ensure_root};
 use rstd::prelude::*;
 use rstd::cmp::min;
 
-use primitives::sr25519::{Signature, Public};
+use runtime_primitives::traits::{Verify, Member};
 
 use codec::{Codec, Encode, Decode};
 
 #[cfg(feature = "std")]
 use serde::{Serialize, Deserialize};
 
-/// The module's configuration trait.
 pub trait Trait: system::Trait + balances::Trait {
-	// TODO: Add other types and constants required configure this module.
-
-	/// The overarching event type.
 	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
+	type Signature: Verify<AccountId = Self::AccountId> + Member;	
 }
 
 const SINGLE_MEETUP_INDEX: u64 = 42;
@@ -55,16 +52,16 @@ impl Default for CeremonyPhaseType {
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "std", derive(Debug))]
-pub struct Witness {
-	claim: ClaimOfAttendance,
+pub struct Witness<Signature, AccountId> {
+	claim: ClaimOfAttendance<AccountId>,
 	signature: Signature,
-	public: Public,
+	public: AccountId,
 }
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "std", derive(Debug))]
-pub struct ClaimOfAttendance {
-	claimant_public: Public,
+pub struct ClaimOfAttendance<AccountId> {
+	claimant_public: AccountId,
 	ceremony_index: CeremonyIndexType,
 	meetup_index: MeetupIndexType,
 }
@@ -151,7 +148,7 @@ decl_module! {
 			Ok(())
 		}
 
-		fn register_witnesses(origin, witnesses: Vec<Witness>) -> Result {
+		fn register_witnesses(origin, witnesses: Vec<Witness<T::Signature, T::AccountId>>) -> Result {
 			let sender = ensure_signed(origin)?;
 			let cindex = <CurrentCeremonyIndex>::get();
 			let meetup_index = Self::meetup_index(&cindex, &sender);
@@ -162,6 +159,7 @@ decl_module! {
 			let num_signed = witnesses.len();
 			ensure!(num_signed <= num_registered, "can't have more witnesses than meetup participants");
 			let mut verified_witness_accounts = vec!();
+			/*
 			for w in 0..num_signed {
 				let witness = &witnesses[w];
 				let witness_account = T::AccountId::from(witnesses[w].public);
@@ -172,6 +170,7 @@ decl_module! {
 				// witness is legit
 				verified_witness_accounts.insert(0, witness_account);
 			}
+			*/
 			if verified_witness_accounts.len() == 0 {
 				return Err("no valid witnesses found");
 			}
@@ -226,7 +225,7 @@ impl<T: Trait> Module<T> {
 		Ok(())
 	}
 
-	fn verify_witness_signature(witness: Witness) -> Result {
+	fn verify_witness_signature(witness: Witness<T::Signature, T::AccountId>) -> Result {
 		ensure!(witness.public != witness.claim.claimant_public, "witness may not be self-signed");
 		match runtime_io::sr25519_verify(
 			&witness.signature, 
