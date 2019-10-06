@@ -378,16 +378,24 @@ mod tests {
 		with_externalities(&mut new_test_ext(), || {
 			
 			let cindex = EncointerCeremonies::current_ceremony_index();
-			assert_eq!(EncointerCeremonies::participant_count(), 0);
+			assert_eq!(EncointerCeremonies::participant_count(), 
+				0);
 			assert_ok!(EncointerCeremonies::register_participant(
 				Origin::signed(AccountKeyring::Alice.into())
 			));
-			assert_eq!(EncointerCeremonies::participant_count(), 1);
-			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(rudi)));
-			assert_eq!(EncointerCeremonies::participant_count(), 2);
-			assert_eq!(EncointerCeremonies::participant_index(&cindex, &rudi), 1);
-			assert_eq!(EncointerCeremonies::participant_registry(&cindex, &0), tom);
-			assert_eq!(EncointerCeremonies::participant_registry(&cindex, &1), rudi);
+			assert_eq!(EncointerCeremonies::participant_count(), 
+				1);
+			assert_ok!(EncointerCeremonies::register_participant(
+				Origin::signed(AccountKeyring::Bob.into())
+				));
+			assert_eq!(EncointerCeremonies::participant_count(), 
+				2);
+			assert_eq!(EncointerCeremonies::participant_index(&cindex, &rudi), 
+				1);
+			assert_eq!(EncointerCeremonies::participant_registry(&cindex, &0), 
+				AccountKeyring::Alice.into());
+			assert_eq!(EncointerCeremonies::participant_registry(&cindex, &1), 
+				AccountKeyring::Bob.into());
 		});
 	}
 
