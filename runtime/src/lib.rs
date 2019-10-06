@@ -35,8 +35,7 @@ pub use balances::Call as BalancesCall;
 pub use sr_primitives::{Permill, Perbill};
 pub use support::{StorageValue, construct_runtime, parameter_types, traits::Randomness};
 
-// Added by SCS
-pub use substratee_registry::Call as SubstraTEERegistryCall;
+//pub use substratee_registry::Call as SubstraTEERegistryCall;
 pub use encointer_ceremonies::Call as EncointerCeremoniesCall;
 
 pub use encointer_ceremonies::CeremonyPhaseType;
@@ -68,8 +67,8 @@ pub type Hash = primitives::H256;
 pub type DigestItem = generic::DigestItem<Hash>;
 
 
-// Added by SCS
-pub mod substratee_registry;
+
+//pub mod substratee_registry;
 pub mod encointer_ceremonies;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
@@ -237,11 +236,10 @@ impl sudo::Trait for Runtime {
 	type Proposal = Call;
 }
 
-// --- start changed by SCS -----------------------------------------------
-impl substratee_registry::Trait for Runtime {
-	type Event = Event;
-}
-// --- end changed by SCS -------------------------------------------------
+
+//impl substratee_registry::Trait for Runtime {
+//	type Event = Event;
+//}
 
 impl encointer_ceremonies::Trait for Runtime {
 	type Event = Event;
@@ -262,7 +260,7 @@ construct_runtime!(
 		Balances: balances::{default, Error},
 		TransactionPayment: transaction_payment::{Module, Storage},
 		Sudo: sudo,
-        SubstraTEERegistry: substratee_registry::{Module, Call, Storage, Event<T>},
+//        SubstraTEERegistry: substratee_registry::{Module, Call, Storage, Event<T>},
 		EncointerCeremonies: encointer_ceremonies::{Module, Call, Storage, Config<T>, Event<T>},
 	}
 );
