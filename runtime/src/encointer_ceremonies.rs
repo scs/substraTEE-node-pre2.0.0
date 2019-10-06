@@ -29,7 +29,7 @@ use serde::{Serialize, Deserialize};
 
 pub trait Trait: system::Trait + balances::Trait {
 	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
-	type Signature: Verify<AccountId = Self::AccountId> + Member;	
+	type Signature: Verify<Signer = Self::AccountId> + Member + Decode + Encode;	
 }
 
 const SINGLE_MEETUP_INDEX: u64 = 42;
@@ -227,11 +227,7 @@ impl<T: Trait> Module<T> {
 
 	fn verify_witness_signature(witness: Witness<T::Signature, T::AccountId>) -> Result {
 		ensure!(witness.public != witness.claim.claimant_public, "witness may not be self-signed");
-		match runtime_io::sr25519_verify(
-			&witness.signature, 
-			&witness.claim.encode(),
-			&witness.public) 
-		{
+		match witness.signature.verify(&witness.claim.encode()[..], &witness.public) {
 			true => Ok(()),
 			false => Err("witness signature is invalid")
 		}
@@ -253,18 +249,38 @@ mod tests {
 	use runtime_primitives::{traits::{BlakeTwo256, IdentityLookup}, testing::Header};
 	use runtime_primitives::weights::Weight;
 	use runtime_primitives::Perbill;
+	use node_primitives::{AccountId, Signature};
 
 	use primitives::crypto::{KeyTypeId, Ss58Codec, DEV_PHRASE, DEV_ADDRESS, Pair};
 	use primitives::sr25519;
+	
+	use test_client::{self, AccountKeyring};
 
 	const NONE: u64 = 0;
 	
 	thread_local! {
 		static EXISTENTIAL_DEPOSIT: RefCell<u64> = RefCell::new(0);
 	}
-	pub type AccountId = u64;
 	pub type BlockNumber = u64;
 	pub type Balance = u64;
+
+	//pub type Signature = Verify<Signer = AccountId> + Member + Decode + Encode;
+
+	// fake signature for this test means just means adding a const value to (AccountId + sum of message bytes)
+/*	const SIGNATURE_ADDEND: u8 = 100;
+	pub struct Signature {
+		signature: u64,
+	};
+	impl Signature {
+		fn verify(msg: &[u8], public: AccountId) -> bool {
+			match Self::signature {
+				SIGNATURE_ADDEND + public + msg.to_vec().sum() => true,
+				_ => false,
+			}	
+		}
+	}
+	*/
+
 	pub struct ExistentialDeposit;
 	impl Get<u64> for ExistentialDeposit {
 		fn get() -> u64 {
@@ -295,7 +311,7 @@ mod tests {
 		type BlockNumber = u64;
 		type Hash = H256;
 		type Hashing = BlakeTwo256;
-		type AccountId = u64;
+		type AccountId = AccountId;
 		type Lookup = IdentityLookup<Self::AccountId>;
 		type Header = Header;
 		type WeightMultiplierUpdate = ();
@@ -330,6 +346,7 @@ mod tests {
 
 	impl Trait for Test {
 		type Event = ();
+		type Signature = Signature;
 	}
 
 	type EncointerCeremonies = Module<Test>;
@@ -361,10 +378,10 @@ mod tests {
 		with_externalities(&mut new_test_ext(), || {
 			
 			let cindex = EncointerCeremonies::current_ceremony_index();
-			let tom = 1u64;
-			let rudi = 2u64;
 			assert_eq!(EncointerCeremonies::participant_count(), 0);
-			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(tom)));
+			assert_ok!(EncointerCeremonies::register_participant(
+				Origin::signed(AccountKeyring::Alice.into())
+			));
 			assert_eq!(EncointerCeremonies::participant_count(), 1);
 			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(rudi)));
 			assert_eq!(EncointerCeremonies::participant_count(), 2);

@@ -266,6 +266,7 @@ impl substratee_registry::Trait for Runtime {
 
 impl encointer_ceremonies::Trait for Runtime {
 	type Event = Event;
+	type Signature = Signature;
 }
 
 construct_runtime!(
