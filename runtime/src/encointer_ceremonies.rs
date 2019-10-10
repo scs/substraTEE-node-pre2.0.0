@@ -64,6 +64,7 @@ pub struct ClaimOfAttendance<AccountId> {
 	claimant_public: AccountId,
 	ceremony_index: CeremonyIndexType,
 	meetup_index: MeetupIndexType,
+	number_of_participants_confirmed: u32,
 }
 
 // This module's storage items.
@@ -83,6 +84,8 @@ decl_storage! {
 		WitnessRegistry get(witness_registry): double_map CeremonyIndexType, twox_128(WitnessIndexType) => Vec<T::AccountId>;
 		WitnessIndex get(witness_index): double_map CeremonyIndexType, twox_128(T::AccountId) => WitnessIndexType;
 		WitnessCount get(witness_count): WitnessIndexType;
+		// how many peers does each participants observe at their meetup
+		MeetupParticipantCountVote get(meetup_participant_count_vote): double_map CeremonyIndexType, twox_128(T::AccountId) => u32;
 
 		CurrentCeremonyIndex get(current_ceremony_index): CeremonyIndexType;
 		LastCeremonyBlock get(last_ceremony_block): T::BlockNumber;
@@ -150,6 +153,8 @@ decl_module! {
 
 		fn register_witnesses(origin, witnesses: Vec<Witness<T::Signature, T::AccountId>>) -> Result {
 			let sender = ensure_signed(origin)?;
+			ensure!(<CurrentPhase>::get() == CeremonyPhaseType::WITNESSING,			
+				"registering witnesses can only be done during WITNESSING phase");
 			let cindex = <CurrentCeremonyIndex>::get();
 			let meetup_index = Self::meetup_index(&cindex, &sender);
 			let mut meetup_participants = Self::meetup_registry(&cindex, &meetup_index);
@@ -159,6 +164,7 @@ decl_module! {
 			let num_signed = witnesses.len();
 			ensure!(num_signed <= num_registered, "can\'t have more witnesses than other meetup participants");
 			let mut verified_witness_accounts = vec!();
+			let mut claim_n_participants = 0u32;
 			for w in 0..num_signed {
 				let witness = &witnesses[w];
 				let witness_account = &witnesses[w].public;
@@ -168,6 +174,8 @@ decl_module! {
 				if Self::verify_witness_signature(witness.clone()).is_err() { continue };
 				// witness is legit. insert it!
 				verified_witness_accounts.insert(0, witness_account.clone());
+				// is it a problem if this number isn't equal for all claims? Guess not.
+				claim_n_participants = witness.claim.number_of_participants_confirmed;
 			}
 			if verified_witness_accounts.len() == 0 {
 				return Err("no valid witnesses found");
@@ -185,8 +193,20 @@ decl_module! {
 			}
 			<WitnessRegistry<T>>::insert(&cindex, &idx, &verified_witness_accounts);
 			<WitnessIndex<T>>::insert(&cindex, &sender, &idx);
-			
+			<MeetupParticipantCountVote<T>>::insert(&cindex, &sender, &claim_n_participants);
 			Ok(())
+		}
+
+		fn claim(origin) -> Result {
+			let sender = ensure_signed(origin)?;
+			ensure!(Self::current_phase() == CeremonyPhaseType::WITNESSING,			
+				"claiming can only be done during WITNESSING phase");
+			let cindex = Self::current_ceremony_index();
+			let claimant_index = Self::witness_index(&cindex, &sender);
+			let claimant_witnesses = Self::witness_registry(&cindex, &claimant_index);
+			let meetup_index = Self::meetup_index(&cindex, &sender);
+			let mut meetup_participants = Self::meetup_registry(&cindex, &meetup_index);
+			Err("not implemented")
 		}
 
 	}
@@ -268,30 +288,12 @@ mod tests {
 
 	type TestWitness = Witness<Signature, AccountId>;
 
-	//pub type Signature = Verify<Signer = AccountId> + Member + Decode + Encode;
-
-	// fake signature for this test means just means adding a const value to (AccountId + sum of message bytes)
-/*	const SIGNATURE_ADDEND: u8 = 100;
-	pub struct Signature {
-		signature: u64,
-	};
-	impl Signature {
-		fn verify(msg: &[u8], public: AccountId) -> bool {
-			match Self::signature {
-				SIGNATURE_ADDEND + public + msg.to_vec().sum() => true,
-				_ => false,
-			}	
-		}
-	}
-	*/
-
 	pub struct ExistentialDeposit;
 	impl Get<u64> for ExistentialDeposit {
 		fn get() -> u64 {
 			EXISTENTIAL_DEPOSIT.with(|v| *v.borrow())
 		}
 	}
-
 
 	impl_outer_origin! {
 		pub enum Origin for Test {}
@@ -487,6 +489,7 @@ mod tests {
 				claimant_public: claimant.into(),
 				ceremony_index: 0,
 				meetup_index: SINGLE_MEETUP_INDEX,
+				number_of_participants_confirmed: 3,
 			};
 			let witness_good = TestWitness { 
 				claim: claim.clone(),
@@ -517,26 +520,14 @@ mod tests {
 			let bob = AccountKeyring::Bob;
 			let ferdie = AccountKeyring::Ferdie;
 			let cindex = 0;
-			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(alice.into())));
-			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(bob.into())));
-			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(ferdie.into())));
-
+			register_alice_bob_ferdie();
 			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
-			
+			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			// WITNESSING
 			assert_eq!(EncointerCeremonies::meetup_index(&cindex, &alice.into()), SINGLE_MEETUP_INDEX);
 
-			let mut alice_witnesses: Vec<TestWitness> = vec!();
-			alice_witnesses.insert(0, meetup_claim_sign(alice.into(), bob.clone()));
-			alice_witnesses.insert(1, meetup_claim_sign(alice.into(), ferdie.clone()));
-			assert_ok!(EncointerCeremonies::register_witnesses(
-				Origin::signed(alice.into()),
-				alice_witnesses.clone()));
-			let mut bob_witnesses: Vec<TestWitness> = vec!();
-			bob_witnesses.insert(0, meetup_claim_sign(bob.into(), alice.clone()));
-			bob_witnesses.insert(1, meetup_claim_sign(bob.into(), ferdie.clone()));
-			assert_ok!(EncointerCeremonies::register_witnesses(
-				Origin::signed(bob.into()),
-				bob_witnesses.clone()));
+			gets_witnessed_by(alice.into(), vec!(bob,ferdie),3);
+			gets_witnessed_by(bob.into(), vec!(alice,ferdie),3);
 
 			assert_eq!(EncointerCeremonies::witness_count(), 2);
 			assert_eq!(EncointerCeremonies::witness_index(&cindex, &bob.into()), 1);
@@ -546,49 +537,90 @@ mod tests {
 			assert!(wit_vec.contains(&ferdie.public()));
 
 			// TEST: re-registering must overwrite previous entry
-			// TEST: registering oneself as witness must fail (no error, but not counted)
-			let mut alice_witnesses: Vec<TestWitness> = vec!();
-			alice_witnesses.insert(0, meetup_claim_sign(alice.into(), bob.clone()));
-			alice_witnesses.insert(1, meetup_claim_sign(alice.into(), alice.clone()));
-			assert_ok!(EncointerCeremonies::register_witnesses(
-				Origin::signed(alice.into()),
-				alice_witnesses));
+			gets_witnessed_by(alice.into(), vec!(bob,ferdie),3);
 			assert_eq!(EncointerCeremonies::witness_count(), 2);	
+		});
+	}
+
+	#[test]
+	fn register_witnesses_for_non_participant_fails_silently() {
+		with_externalities(&mut new_test_ext(), || {
+			let alice = AccountKeyring::Alice;
+			let bob = AccountKeyring::Bob;
+			let cindex = 0;
+			register_alice_bob_ferdie();
+			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			// WITNESSING
+			gets_witnessed_by(alice.into(), vec!(bob,alice),3);
+			assert_eq!(EncointerCeremonies::witness_count(), 1);	
 			let wit_vec = EncointerCeremonies::witness_registry(&cindex, &0);
 			assert!(wit_vec.contains(&alice.public()) == false);
 			assert!(wit_vec.len() == 1);
 
-			// TEST: can't register if not part of specified meetup
-			let eve = AccountKeyring::Eve;			
+		});
+	}
+
+	#[test]
+	fn register_witnesses_for_non_participant_fails() {
+		with_externalities(&mut new_test_ext(), || {
+			let alice = AccountKeyring::Alice;
+			let ferdie = AccountKeyring::Ferdie;
+			let eve = AccountKeyring::Eve;
+			let cindex = 0;
+			register_alice_bob_ferdie();
+			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			// WITNESSING
 			let mut eve_witnesses: Vec<TestWitness> = vec!();
-			eve_witnesses.insert(0, meetup_claim_sign(eve.into(), alice.clone()));
-			eve_witnesses.insert(1, meetup_claim_sign(eve.into(), ferdie.clone()));
+			eve_witnesses.insert(0, meetup_claim_sign(eve.into(), alice.clone(),3));
+			eve_witnesses.insert(1, meetup_claim_sign(eve.into(), ferdie.clone(),3));
 			assert!(EncointerCeremonies::register_witnesses(
 				Origin::signed(eve.into()),
 				eve_witnesses.clone())
 				.is_err());
 
-			// TEST: can't add signatures from non-participants
-			let mut alice_witnesses: Vec<TestWitness> = vec!();
-			alice_witnesses.insert(0, meetup_claim_sign(alice.into(), bob.clone()));
-			alice_witnesses.insert(1, meetup_claim_sign(alice.into(), eve.clone()));
-			assert_ok!(EncointerCeremonies::register_witnesses(
-				Origin::signed(alice.into()),
-				alice_witnesses));
-			assert_eq!(EncointerCeremonies::witness_count(), 2);	
+		});
+	}
+
+	#[test]
+	fn register_witnesses_with_non_participant_fails_silently() {
+		with_externalities(&mut new_test_ext(), || {
+			let alice = AccountKeyring::Alice;
+			let bob = AccountKeyring::Bob;
+			let eve = AccountKeyring::Eve;
+			let cindex = 0;
+			register_alice_bob_ferdie();
+			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			// WITNESSING
+			gets_witnessed_by(alice.into(), vec!(bob, eve), 3);
+			assert_eq!(EncointerCeremonies::witness_count(), 1);	
 			let wit_vec = EncointerCeremonies::witness_registry(&cindex, &0);
 			assert!(wit_vec.contains(&eve.public()) == false);
 			assert!(wit_vec.len() == 1);			
+		});
+	}
 
-			// TODO
-			// TEST: wrong meetup index in claim fails
+	#[test]
+	fn register_witnesses_with_wrong_meetup_index_fails() {
+		with_externalities(&mut new_test_ext(), || {
+			let alice = AccountKeyring::Alice;
+			let bob = AccountKeyring::Bob;
+			let ferdie = AccountKeyring::Ferdie;
+			let cindex = 0;
+			register_alice_bob_ferdie();
+			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			// WITNESSING
 			let mut alice_witnesses: Vec<TestWitness> = vec!();
-			alice_witnesses.insert(0, meetup_claim_sign(alice.into(), bob.clone()));
+			alice_witnesses.insert(0, meetup_claim_sign(alice.into(), bob.clone(), 3));
 			let claim = ClaimOfAttendance {
 				claimant_public: alice.into(),
 				ceremony_index: 0,
 				// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 				meetup_index: SINGLE_MEETUP_INDEX + 99,
+				number_of_participants_confirmed: 3,
 			};
 			alice_witnesses.insert(1, 
 				TestWitness { 
@@ -600,42 +632,54 @@ mod tests {
 			assert_ok!(EncointerCeremonies::register_witnesses(
 				Origin::signed(alice.into()),
 				alice_witnesses));
-			assert_eq!(EncointerCeremonies::witness_count(), 2);	
-			let wit_vec = EncointerCeremonies::witness_registry(&cindex, &0);
-			assert!(wit_vec.contains(&ferdie.public()) == false);
-			assert!(wit_vec.len() == 1);			
-
-			// TEST: wring ceremony index in claim fails
-			let mut alice_witnesses: Vec<TestWitness> = vec!();
-			alice_witnesses.insert(0, meetup_claim_sign(alice.into(), bob.clone()));
-			let claim = ClaimOfAttendance {
-				claimant_public: alice.into(),
-				// !!!!!!!!!!!!!!!!!!!!!!!!!!
-				ceremony_index: 99,
-				meetup_index: SINGLE_MEETUP_INDEX,
-			};
-			alice_witnesses.insert(1, 
-				TestWitness { 
-					claim: claim.clone(),
-					signature: Signature::from(ferdie.sign(&claim.encode())),
-					public: ferdie.into(),
-				}
-			);
-			assert_ok!(EncointerCeremonies::register_witnesses(
-				Origin::signed(alice.into()),
-				alice_witnesses));
-			assert_eq!(EncointerCeremonies::witness_count(), 2);	
 			let wit_vec = EncointerCeremonies::witness_registry(&cindex, &0);
 			assert!(wit_vec.contains(&ferdie.public()) == false);
 			assert!(wit_vec.len() == 1);			
 		});
 	}
 
-	fn meetup_claim_sign(claimant: AccountId, witness: AccountKeyring) -> TestWitness {
+	#[test]
+	fn register_witnesses_with_wrong_ceremony_index_fails() {
+		with_externalities(&mut new_test_ext(), || {
+			let alice = AccountKeyring::Alice;
+			let bob = AccountKeyring::Bob;
+			let ferdie = AccountKeyring::Ferdie;
+			let cindex = 0;
+			register_alice_bob_ferdie();
+			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			// WITNESSING
+			let mut alice_witnesses: Vec<TestWitness> = vec!();
+			alice_witnesses.insert(0, meetup_claim_sign(alice.into(), bob.clone(), 3));
+			let claim = ClaimOfAttendance {
+				claimant_public: alice.into(),
+				// !!!!!!!!!!!!!!!!!!!!!!!!!!
+				ceremony_index: 99,
+				meetup_index: SINGLE_MEETUP_INDEX,
+				number_of_participants_confirmed: 3,
+			};
+			alice_witnesses.insert(1, 
+				TestWitness { 
+					claim: claim.clone(),
+					signature: Signature::from(ferdie.sign(&claim.encode())),
+					public: ferdie.into(),
+				}
+			);
+			assert_ok!(EncointerCeremonies::register_witnesses(
+				Origin::signed(alice.into()),
+				alice_witnesses));
+			let wit_vec = EncointerCeremonies::witness_registry(&cindex, &0);
+			assert!(wit_vec.contains(&ferdie.public()) == false);
+			assert!(wit_vec.len() == 1);			
+		});
+	}
+
+	fn meetup_claim_sign(claimant: AccountId, witness: AccountKeyring, n_participants: u32) -> TestWitness {
 			let claim = ClaimOfAttendance {
 				claimant_public: claimant.clone(),
 				ceremony_index: 0,
 				meetup_index: SINGLE_MEETUP_INDEX,
+				number_of_participants_confirmed: n_participants,
 			};
 			TestWitness { 
 				claim: claim.clone(),
@@ -643,5 +687,68 @@ mod tests {
 				public: witness.into(),
 			}
 	}
+
+	fn register_alice_bob_ferdie() {
+		assert_ok!(EncointerCeremonies::register_participant(Origin::signed(AccountKeyring::Alice.into())));
+		assert_ok!(EncointerCeremonies::register_participant(Origin::signed(AccountKeyring::Bob.into())));
+		assert_ok!(EncointerCeremonies::register_participant(Origin::signed(AccountKeyring::Ferdie.into())));
+	}
+
+	fn register_charlie_dave_eve() {
+		assert_ok!(EncointerCeremonies::register_participant(Origin::signed(AccountKeyring::Charlie.into())));
+		assert_ok!(EncointerCeremonies::register_participant(Origin::signed(AccountKeyring::Dave.into())));
+		assert_ok!(EncointerCeremonies::register_participant(Origin::signed(AccountKeyring::Eve.into())));
+	}
+
+	fn gets_witnessed_by(claimant: AccountId, witnesses: Vec<AccountKeyring>, n_participants: u32) {
+		let mut testimonials: Vec<TestWitness> = vec!();
+		for w in witnesses {
+			testimonials.insert(0, 
+				meetup_claim_sign(claimant.clone(), w.clone(), n_participants));
+			
+		}
+		assert_ok!(EncointerCeremonies::register_witnesses(
+				Origin::signed(claimant.into()),
+				testimonials.clone()));	
+	}
+
+	#[test]
+	fn claim_reward_works() {
+		with_externalities(&mut new_test_ext(), || {
+			let alice = AccountKeyring::Alice;
+			let bob = AccountKeyring::Bob;
+			let ferdie = AccountKeyring::Ferdie;
+			let charlie = AccountKeyring::Charlie;
+			let dave = AccountKeyring::Dave;
+			let eve = AccountKeyring::Eve;
+			let cindex = 0;			
+			register_alice_bob_ferdie();
+			register_charlie_dave_eve();
+
+			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			// ASSIGNING
+			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			// WITNESSING
+			// ferdi doesn't show up
+			// eve signs no one else
+			// charlie collects incomplete signatures
+			// dave signs ferdi and reports wrong number of participants
+			gets_witnessed_by(alice.into(), vec!(bob,charlie,dave),5);
+			gets_witnessed_by(bob.into(), vec!(alice,charlie,dave),5);
+			gets_witnessed_by(charlie.into(), vec!(alice,bob),5);
+			gets_witnessed_by(dave.into(), vec!(alice,bob,charlie),6);
+			gets_witnessed_by(eve.into(), vec!(alice,bob,charlie,dave),5);
+			gets_witnessed_by(ferdie.into(), vec!(dave),6);
+
+			assert_ok!(EncointerCeremonies::claim(Origin::signed(alice.into())));
+			assert_ok!(EncointerCeremonies::claim(Origin::signed(bob.into())));
+			assert!(EncointerCeremonies::claim(Origin::signed(charlie.into())).is_err());
+			assert!(EncointerCeremonies::claim(Origin::signed(dave.into())).is_err());
+			assert!(EncointerCeremonies::claim(Origin::signed(eve.into())).is_err());
+			assert!(EncointerCeremonies::claim(Origin::signed(ferdie.into())).is_err());
+
+		});
+	}
+
 
 }
