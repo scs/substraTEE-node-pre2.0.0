@@ -14,13 +14,14 @@
 
 use support::{decl_module, decl_storage, decl_event, ensure,
 	storage::{StorageDoubleMap, StorageMap, StorageValue},
+	traits::Currency,
 	dispatch::Result};
 use system::{ensure_signed, ensure_root};
 
 use rstd::prelude::*;
 use rstd::cmp::min;
 
-use runtime_primitives::traits::{Verify, Member};
+use runtime_primitives::traits::{Verify, Member, CheckedAdd};
 use runtime_io::print;
 
 use codec::{Codec, Encode, Decode};
@@ -257,28 +258,52 @@ impl<T: Trait> Module<T> {
 			"issuance can only be called at the end of WITNESSING phase");
 		let cindex = Self::current_ceremony_index();
 		let meetup_count = Self::meetup_count();
+		let reward = Self::ceremony_reward();		
 		ensure!(meetup_count == 1, "registry must contain exactly one meetup for PoC1");
 
 		for m in 0..meetup_count {
 			// first, evaluate votes on how many participants showed up
-			let n_confirmed = match Self::ballot_meetup_n_votes(SINGLE_MEETUP_INDEX) {
-				Some(n) => n,
+			let (n_confirmed, n_honest_participants) = match Self::ballot_meetup_n_votes(SINGLE_MEETUP_INDEX) {
+				Some(nn) => nn,
 				_ => {
 					print("skipping meetup because votes for num of participants are not dependable");
 					continue;
 				},
 			};
+			let mut meetup_participants = Self::meetup_registry(&cindex, &SINGLE_MEETUP_INDEX);
+			for p in meetup_participants {
+				if Self::meetup_participant_count_vote(&cindex, &p) != n_confirmed {
+					print("skipped participant because of wrong participant count vote");
+					continue; }
+				let witnesses = Self::witness_registry(&cindex, 
+					&Self::witness_index(&cindex, &p));
+				if witnesses.len() < (n_honest_participants - 1) as usize || witnesses.is_empty() {
+					print("skipped participant because of too few witnesses");
+					continue; }
+				let mut has_witnessed = 0u32;
+				for w in witnesses {
+					let w_witnesses = Self::witness_registry(&cindex, 
+					&Self::witness_index(&cindex, &w));
+					if w_witnesses.contains(&p) {
+						has_witnessed += 1;
+					}
+				}
+				if has_witnessed < (n_honest_participants - 1) {
+					print("skipped participant because didn't testify for honest peers");
+					continue; }					
+				// TODO: check that p also signed others
+				// participant merits reward
+				print("participant merits reward");
+				let old_balance = <balances::Module<T>>::free_balance(&p);
+				let new_balance = old_balance.checked_add(&reward)
+					.expect("Balance should never overflow");
+				<balances::Module<T> as Currency<_>>::make_free_balance_be(&p, new_balance);
+			}
 		}
-
-/*		let claimant_index = Self::witness_index(&cindex, &sender);
-		let claimant_witnesses = Self::witness_registry(&cindex, &claimant_index);
-		let meetup_index = Self::meetup_index(&cindex, &sender);
-		let mut meetup_participants = Self::meetup_registry(&cindex, &meetup_index);
-		*/
 		Ok(())
 	}
 
-	fn ballot_meetup_n_votes(meetup_idx: MeetupIndexType) -> Option<u32> {
+	fn ballot_meetup_n_votes(meetup_idx: MeetupIndexType) -> Option<(u32, u32)> {
 		let cindex = Self::current_ceremony_index();
 		let meetup_participants = Self::meetup_registry(&cindex, &meetup_idx);
 		// first element is n, second the count of votes for n
@@ -299,7 +324,7 @@ impl<T: Trait> Module<T> {
 		if n_vote_candidates[0].1 < 3 {
 			return None;
 		}
-		Some(n_vote_candidates[0].0)
+		Some(n_vote_candidates[0])
 	}
 }
 
@@ -309,13 +334,13 @@ impl<T: Trait> Module<T> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	
+	use crate::encointer_ceremonies;
 	use std::{collections::HashSet, cell::RefCell};
 	use runtime_io::with_externalities;
 	use primitives::{H256, Blake2Hasher};
 	use support::{impl_outer_origin, assert_ok, parameter_types};
 	use support::traits::{Currency, Get, FindAuthor, LockIdentifier};
-	use runtime_primitives::{traits::{BlakeTwo256, IdentityLookup}, testing::Header};
+	use runtime_primitives::{traits::{BlakeTwo256, IdentityLookup, Block as BlockT}, testing::Header};
 	use runtime_primitives::weights::Weight;
 	use runtime_primitives::Perbill;
 	use node_primitives::{AccountId, Signature};
@@ -338,16 +363,20 @@ mod tests {
 			EXISTENTIAL_DEPOSIT.with(|v| *v.borrow())
 		}
 	}
-
+/*
 	impl_outer_origin! {
 		pub enum Origin for Test {}
 	}
+*/
 
+	pub type Block = runtime_primitives::generic::Block<Header, UncheckedExtrinsic>;
+	pub type UncheckedExtrinsic = runtime_primitives::generic::UncheckedExtrinsic<u32, u64, Call, ()>;
 	// For testing the module, we construct most of a mock runtime. This means
 	// first constructing a configuration type (`Test`) which `impl`s each of the
 	// configuration traits of modules we want to use.
-	#[derive(Clone, Eq, PartialEq)]
-	pub struct Test;
+	
+	//#[derive(Clone, Eq, PartialEq)]
+	//pub struct Test;
 	parameter_types! {
 		pub const BlockHashCount: u64 = 250;
 		pub const MaximumBlockWeight: Weight = 1024;
@@ -398,13 +427,32 @@ mod tests {
 		type Event = ();
 		type Signature = Signature;
 	}
+	support::construct_runtime!(
+		pub enum Test where
+			Block = Block,
+			NodeBlock = Block,
+			UncheckedExtrinsic = UncheckedExtrinsic
+		{
+			System: system::{Module, Call, Event},
+			Balances: balances::{Module, Call, Event<T>, Config<T>, Error},
+			EncointerCeremonies: encointer_ceremonies::{Module, Call, Event<T>, Config<T>, Error},
+		}
+	);
 
-	type EncointerCeremonies = Module<Test>;
+	//type EncointerCeremonies = Module<Test>;
 
 	// This function basically just builds a genesis storage key/value store according to
 	// our desired mockup.
 	fn new_test_ext() -> runtime_io::TestExternalities<Blake2Hasher> {
-		system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+		let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
+		balances::GenesisConfig::<Test> {
+			balances: vec![],
+			vesting: vec![],
+		}.assimilate_storage(&mut t).unwrap();		
+		encointer_ceremonies::GenesisConfig::<Test> {
+			ceremony_reward: 1_000_000,
+		}.assimilate_storage(&mut t).unwrap();		
+		t.into()		
 	}
 
 	#[test]
@@ -779,14 +827,29 @@ mod tests {
 			gets_witnessed_by(dave.into(), vec!(alice),5);
 			gets_witnessed_by(eve.into(), vec!(alice),5);
 			gets_witnessed_by(ferdie.into(), vec!(dave),6);
+			assert!(EncointerCeremonies::ballot_meetup_n_votes(SINGLE_MEETUP_INDEX) == Some((5,5)));
 
-			assert!(EncointerCeremonies::ballot_meetup_n_votes(SINGLE_MEETUP_INDEX) == Some(5));
+			gets_witnessed_by(alice.into(), vec!(bob),5);
+			gets_witnessed_by(bob.into(), vec!(alice),5);
+			gets_witnessed_by(charlie.into(), vec!(alice),4);
+			gets_witnessed_by(dave.into(), vec!(alice),4);
+			gets_witnessed_by(eve.into(), vec!(alice),6);
+			gets_witnessed_by(ferdie.into(), vec!(dave),6);
+			assert!(EncointerCeremonies::ballot_meetup_n_votes(SINGLE_MEETUP_INDEX) == None);
+
+			gets_witnessed_by(alice.into(), vec!(bob),5);
+			gets_witnessed_by(bob.into(), vec!(alice),5);
+			gets_witnessed_by(charlie.into(), vec!(alice),5);
+			gets_witnessed_by(dave.into(), vec!(alice),4);
+			gets_witnessed_by(eve.into(), vec!(alice),6);
+			gets_witnessed_by(ferdie.into(), vec!(dave),6);
+			assert!(EncointerCeremonies::ballot_meetup_n_votes(SINGLE_MEETUP_INDEX) == Some((5,3)));
 		});
 	}
 
 
 	#[test]
-	fn claim_reward_works() {
+	fn issue_reward_works() {
 		with_externalities(&mut new_test_ext(), || {
 			let alice = AccountKeyring::Alice;
 			let bob = AccountKeyring::Bob;
@@ -812,16 +875,15 @@ mod tests {
 			gets_witnessed_by(dave.into(), vec!(alice,bob,charlie),6);
 			gets_witnessed_by(eve.into(), vec!(alice,bob,charlie,dave),5);
 			gets_witnessed_by(ferdie.into(), vec!(dave),6);
-
-/*			assert_ok!(EncointerCeremonies::claim(Origin::signed(alice.into())));
-			assert_ok!(EncointerCeremonies::claim(Origin::signed(bob.into())));
-			assert!(EncointerCeremonies::claim(Origin::signed(charlie.into())).is_err());
-			assert!(EncointerCeremonies::claim(Origin::signed(dave.into())).is_err());
-			assert!(EncointerCeremonies::claim(Origin::signed(eve.into())).is_err());
-			assert!(EncointerCeremonies::claim(Origin::signed(ferdie.into())).is_err());
-*/
+			println!("claim_reward_works: now is christmas!");
+			let reward = EncointerCeremonies::ceremony_reward();
+			assert_eq!(Balances::free_balance(&alice.into()), 0);
+			assert_ok!(EncointerCeremonies::issue_rewards());
+			assert_eq!(Balances::free_balance(&alice.into()), reward);
+			assert_eq!(Balances::free_balance(&bob.into()), reward);
+			assert_eq!(Balances::free_balance(&charlie.into()), 0);
+			assert_eq!(Balances::free_balance(&eve.into()), 0);
+			assert_eq!(Balances::free_balance(&ferdie.into()), 0);
 		});
 	}
-
-
 }
