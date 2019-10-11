@@ -348,6 +348,7 @@ mod tests {
 	use test_client::{self, AccountKeyring};
 
 	const NONE: u64 = 0;
+	const REWARD: Balance = 1000;
 	
 	thread_local! {
 		static EXISTENTIAL_DEPOSIT: RefCell<u64> = RefCell::new(0);
@@ -363,11 +364,6 @@ mod tests {
 			EXISTENTIAL_DEPOSIT.with(|v| *v.borrow())
 		}
 	}
-/*
-	impl_outer_origin! {
-		pub enum Origin for Test {}
-	}
-*/
 
 	pub type Block = runtime_primitives::generic::Block<Header, UncheckedExtrinsic>;
 	pub type UncheckedExtrinsic = runtime_primitives::generic::UncheckedExtrinsic<u32, u64, Call, ()>;
@@ -375,8 +371,6 @@ mod tests {
 	// first constructing a configuration type (`Test`) which `impl`s each of the
 	// configuration traits of modules we want to use.
 	
-	//#[derive(Clone, Eq, PartialEq)]
-	//pub struct Test;
 	parameter_types! {
 		pub const BlockHashCount: u64 = 250;
 		pub const MaximumBlockWeight: Weight = 1024;
@@ -427,6 +421,8 @@ mod tests {
 		type Event = ();
 		type Signature = Signature;
 	}
+
+	// in order to test interaction with balances module too, we need a full runtime
 	support::construct_runtime!(
 		pub enum Test where
 			Block = Block,
@@ -439,8 +435,6 @@ mod tests {
 		}
 	);
 
-	//type EncointerCeremonies = Module<Test>;
-
 	// This function basically just builds a genesis storage key/value store according to
 	// our desired mockup.
 	fn new_test_ext() -> runtime_io::TestExternalities<Blake2Hasher> {
@@ -450,7 +444,7 @@ mod tests {
 			vesting: vec![],
 		}.assimilate_storage(&mut t).unwrap();		
 		encointer_ceremonies::GenesisConfig::<Test> {
-			ceremony_reward: 1_000_000,
+			ceremony_reward: REWARD,
 		}.assimilate_storage(&mut t).unwrap();		
 		t.into()		
 	}
@@ -603,7 +597,6 @@ mod tests {
 			assert!(EncointerCeremonies::verify_witness_signature(witness_wrong_signer).is_err());
 		});
 	}
-
 
 	#[test]
 	fn register_witnesses_works() {
@@ -847,7 +840,6 @@ mod tests {
 		});
 	}
 
-
 	#[test]
 	fn issue_reward_works() {
 		with_externalities(&mut new_test_ext(), || {
@@ -875,12 +867,12 @@ mod tests {
 			gets_witnessed_by(dave.into(), vec!(alice,bob,charlie),6);
 			gets_witnessed_by(eve.into(), vec!(alice,bob,charlie,dave),5);
 			gets_witnessed_by(ferdie.into(), vec!(dave),6);
-			println!("claim_reward_works: now is christmas!");
-			let reward = EncointerCeremonies::ceremony_reward();
 			assert_eq!(Balances::free_balance(&alice.into()), 0);
+
 			assert_ok!(EncointerCeremonies::issue_rewards());
-			assert_eq!(Balances::free_balance(&alice.into()), reward);
-			assert_eq!(Balances::free_balance(&bob.into()), reward);
+
+			assert_eq!(Balances::free_balance(&alice.into()), REWARD);
+			assert_eq!(Balances::free_balance(&bob.into()), REWARD);
 			assert_eq!(Balances::free_balance(&charlie.into()), 0);
 			assert_eq!(Balances::free_balance(&eve.into()), 0);
 			assert_eq!(Balances::free_balance(&ferdie.into()), 0);
