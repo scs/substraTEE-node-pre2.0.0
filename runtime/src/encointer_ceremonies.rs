@@ -55,18 +55,18 @@ impl Default for CeremonyPhaseType {
 #[derive(Encode, Decode, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub struct Witness<Signature, AccountId> {
-	claim: ClaimOfAttendance<AccountId>,
-	signature: Signature,
-	public: AccountId,
+	pub claim: ClaimOfAttendance<AccountId>,
+	pub signature: Signature,
+	pub public: AccountId,
 }
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub struct ClaimOfAttendance<AccountId> {
-	claimant_public: AccountId,
-	ceremony_index: CeremonyIndexType,
-	meetup_index: MeetupIndexType,
-	number_of_participants_confirmed: u32,
+	pub claimant_public: AccountId,
+	pub ceremony_index: CeremonyIndexType,
+	pub meetup_index: MeetupIndexType,
+	pub number_of_participants_confirmed: u32,
 }
 
 // This module's storage items.
