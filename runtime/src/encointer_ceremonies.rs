@@ -52,7 +52,7 @@ impl Default for CeremonyPhaseType {
     fn default() -> Self { CeremonyPhaseType::REGISTERING }
 }
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, Default)]
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub struct Witness<Signature, AccountId> {
 	pub claim: ClaimOfAttendance<AccountId>,
@@ -60,7 +60,7 @@ pub struct Witness<Signature, AccountId> {
 	pub public: AccountId,
 }
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, Default)]
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub struct ClaimOfAttendance<AccountId> {
 	pub claimant_public: AccountId,
