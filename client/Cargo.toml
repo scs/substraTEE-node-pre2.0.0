@@ -33,6 +33,18 @@ git = 'https://github.com/paritytech/substrate'
 rev = 'f17d023bbe179f15678ac9989f471c9b18917e17'
 package = "substrate-keystore"
 
+[dependencies.balances]
+git = 'https://github.com/paritytech/substrate'
+rev = 'f17d023bbe179f15678ac9989f471c9b18917e17'
+package = "srml-balances"
+default-features=false
+
+[dependencies.system]
+git = 'https://github.com/paritytech/substrate'
+rev = "9b08e7ff938a45dbec7fcdb854063202e2b0cb48"
+package = "srml-system"
+default-features=false
+
 [dependencies.encointer-node-runtime]
 git = 'https://github.com/encointer/encointer-node'
 branch = "PoC1"

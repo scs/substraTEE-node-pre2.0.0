@@ -566,6 +566,8 @@ dependencies = [
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "parity-scale-codec 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.41 (registry+https://github.com/rust-lang/crates.io-index)",
+ "srml-balances 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
+ "srml-system 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "substrate-api-client 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
  "substrate-bip39 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "substrate-keyring 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
@@ -3825,7 +3827,7 @@ name = "twox-hash"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "rand 0.3.23 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

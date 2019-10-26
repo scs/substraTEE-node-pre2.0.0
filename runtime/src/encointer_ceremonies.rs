@@ -128,6 +128,7 @@ decl_module! {
 
 			<CurrentPhase>::put(next_phase);
 			Self::deposit_event(RawEvent::PhaseChangedTo(next_phase));
+			print("phase changed");
 			Ok(())
 		}
 

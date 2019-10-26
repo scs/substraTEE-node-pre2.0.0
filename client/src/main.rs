@@ -24,11 +24,11 @@ use keyring::AccountKeyring;
 use keystore::Store;
 use substrate_api_client::{
     Api,
-    compose_extrinsic_offline,
+    compose_extrinsic,
     extrinsic, 
     extrinsic::xt_primitives::{AccountId, UncheckedExtrinsicV3},
     rpc::json_req,
-    utils::{storage_key_hash, hexstr_to_hash, hexstr_to_u256},
+    utils::{storage_key_hash, hexstr_to_hash, hexstr_to_u256, hexstr_to_vec},
 };
 use codec::{Encode, Decode};
 use primitives::{
@@ -37,15 +37,17 @@ use primitives::{
 };
 use bip39::{Mnemonic, Language, MnemonicType};
 
-use encointer_node_runtime::{Call, EncointerCeremoniesCall, BalancesCall, 
+use encointer_node_runtime::{Event, Call, EncointerCeremoniesCall, BalancesCall, 
     Signature, Hash,
     encointer_ceremonies::{ClaimOfAttendance, Witness, CeremonyIndexType,
         MeetupIndexType}
 }; 
+
 use serde_json;
 use log::{info, debug, trace, warn};
 use log::Level;
 use clap::App;
+use std::sync::mpsc::channel;
 
 fn main() {
     env_logger::init();
@@ -54,22 +56,73 @@ fn main() {
 
 	let url = matches.value_of("URL").expect("must specify URL");
 	info!("connecting to {}", url);
-    let mut api = Api::<sr25519::Pair>::new(format!("ws://{}", url));
-    let accountid = AccountId::from(AccountKeyring::Alice);
-    let result_str = api
-        .get_storage("Balances", "FreeBalance", Some(accountid.encode()))
-        .unwrap();
-    let result = hexstr_to_u256(result_str).unwrap();
-    println!("[+] Alice's balance is {}", result);
+    let api = Api::<sr25519::Pair>::new(format!("ws://{}", url));
     
     let keystore_path = "my_keystore";
 	let keystore = Store::open(keystore_path, None).unwrap();
 
-
     if let Some(_matches) = matches.subcommand_matches("next_phase") {
-        info!("will call next_phase() with extrinsic");
-    }
+        let _api = api.clone().set_signer(AccountKeyring::Alice.pair());
 
+        let xt: UncheckedExtrinsicV3<_, sr25519::Pair>  = compose_extrinsic!(
+            _api.clone(),
+            "EncointerCeremonies",
+            "next_phase"
+        );
+
+        // send and watch extrinsic until finalized
+        let tx_hash = _api.send_extrinsic(xt.hex_encode()).unwrap();
+        println!("Transaction got finalized. Phase should've advanced. tx hash: {:?}", tx_hash);       
+    }
+ 
+    if let Some(_matches) = matches.subcommand_matches("listen") {
+        info!("Subscribing to events");
+        let (events_in, events_out) = channel();
+        api.subscribe_events(events_in.clone());
+        loop {
+            let event_str = events_out.recv().unwrap();
+            let _unhex = hexstr_to_vec(event_str).unwrap();
+            let mut _er_enc = _unhex.as_slice();
+            let _events = Vec::<system::EventRecord<Event, Hash>>::decode(&mut _er_enc);
+            match _events {
+                Ok(evts) => {
+                    for evr in &evts {
+                        debug!("decoded: phase {:?} event {:?}", evr.phase, evr.event);
+                        match &evr.event {
+/*                            Event::balances(be) => {
+                                println!(">>>>>>>>>> balances event: {:?}", be);
+                                match &be {
+                                    balances::RawEvent::Transfer(transactor, dest, value, fee) => {
+                                        println!("Transactor: {:?}", transactor);
+                                        println!("Destination: {:?}", dest);
+                                        println!("Value: {:?}", value);
+                                        println!("Fee: {:?}", fee);
+                                    }
+                                    _ => {
+                                        debug!("ignoring unsupported balances event");
+                                    }
+                                }
+                            },*/
+                            Event::encointer_ceremonies(ee) => {
+                                println!(">>>>>>>>>> ceremony event: {:?}", ee);
+                                match &ee {
+                                    encointer_node_runtime::encointer_ceremonies::RawEvent::PhaseChangedTo(phase) => {
+                                        println!("Phase changed to: {:?}", phase);
+                                    }
+                                    _ => {
+                                        debug!("ignoring unsupported ceremony event");
+                                    }
+                                }
+                            },
+                            _ => debug!("ignoring unsupported module event: {:?}", evr.event),
+                        }
+                    }
+                }
+                Err(_) => error!("couldn't decode event record list"),
+            }
+        }
+    }
+ 
     if let Some(_matches) = matches.subcommand_matches("get_balance") {
         let account = _matches.value_of("account").unwrap();
         let accountid: AccountId = match &account[..2] {
@@ -81,6 +134,6 @@ fn main() {
             .unwrap();
         let result = hexstr_to_u256(result_str).unwrap();
         info!("ss58 is {}", accountid.to_ss58check());
-        println!("[+] balance for {} is {}", account, result);
+        println!("balance for {} is {}", account, result);
     }
 }
