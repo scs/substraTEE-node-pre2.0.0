@@ -1,7 +1,7 @@
 [package]
 name = "encointer-node"
 version = "4.0.1"
-authors = ["Supercomputing Systems AG <info@scs.ch>"]
+authors = ["encointer.org <alain@encointer.org>"]
 build = "build.rs"
 edition = "2018"
 [profile.release]

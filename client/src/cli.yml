@@ -33,3 +33,5 @@ subcommands:
         about: generate new account and store it in keystore
         settings:
             - ColoredHelp
+    - listen:
+        about: listen to events form EncointerCeremonies
