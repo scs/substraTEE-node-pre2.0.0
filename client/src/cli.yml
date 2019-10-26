@@ -1,0 +1,35 @@
+name: "encointer client"
+version: "0.1.0"
+about: Example client for encointer-node
+author: encointer.org
+
+# AppSettings can be defined as a list and are **not** ascii case sensitive
+settings:
+    - ColoredHelp
+
+# All Args must be defined in the 'args:' list where the name of the arg, is the
+# key to a Hash object
+args:
+    - URL:
+        help: Sets the url and port for the encointer node
+        required: true
+        index: 1
+#    - keystore:
+#        help: Sets the keystore directory path
+#        value_name: PATH
+#        takes_value: true
+subcommands:
+    - next_phase:
+        about: Advance ceremony state machine to next phase by ROOT call
+    - get_balance:
+        about: get balance for account
+        settings:
+            - ColoredHelp
+        args:
+            - account:
+                required: true
+                index: 1
+    - new_account:
+        about: generate new account and store it in keystore
+        settings:
+            - ColoredHelp
