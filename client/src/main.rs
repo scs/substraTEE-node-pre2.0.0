@@ -23,7 +23,7 @@ extern crate env_logger;
 use keyring::AccountKeyring;
 use keystore::Store;
 use substrate_api_client::{
-    Api,
+    Api, node_metadata,
     compose_extrinsic,
     extrinsic, 
     extrinsic::xt_primitives::{AccountId, UncheckedExtrinsicV3},
@@ -74,7 +74,14 @@ fn main() {
         let tx_hash = _api.send_extrinsic(xt.hex_encode()).unwrap();
         println!("Transaction got finalized. Phase should've advanced. tx hash: {:?}", tx_hash);       
     }
- 
+
+    if let Some(_matches) = matches.subcommand_matches("print_metadata") {
+        let meta = api.get_metadata();
+        println!(
+            "Metadata:\n {}",
+            node_metadata::pretty_format(&meta).unwrap()
+        );
+    }
     if let Some(_matches) = matches.subcommand_matches("listen") {
         info!("Subscribing to events");
         let (events_in, events_out) = channel();
@@ -108,7 +115,10 @@ fn main() {
                                 match &ee {
                                     encointer_node_runtime::encointer_ceremonies::RawEvent::PhaseChangedTo(phase) => {
                                         println!("Phase changed to: {:?}", phase);
-                                    }
+                                    },
+                                    encointer_node_runtime::encointer_ceremonies::RawEvent::ParticipantRegistered(accountid) => {
+                                        println!("Participant registered for ceremony: {:?}", accountid);
+                                    },
                                     _ => {
                                         debug!("ignoring unsupported ceremony event");
                                     }
@@ -125,15 +135,40 @@ fn main() {
  
     if let Some(_matches) = matches.subcommand_matches("get_balance") {
         let account = _matches.value_of("account").unwrap();
-        let accountid: AccountId = match &account[..2] {
-            "//" => sr25519::Pair::from_string(_matches.value_of("account").unwrap(), None).unwrap().public().into(),
-            _ => sr25519::Public::from_ss58check(_matches.value_of("account").unwrap()).unwrap().into(),
-        };
+        let accountid = get_accountid_from_str(account);
         let result_str = api
             .get_storage("Balances", "FreeBalance", Some(accountid.encode()))
             .unwrap();
         let result = hexstr_to_u256(result_str).unwrap();
         info!("ss58 is {}", accountid.to_ss58check());
         println!("balance for {} is {}", account, result);
+    }
+
+    if let Some(_matches) = matches.subcommand_matches("register_participant") {
+        let account = _matches.value_of("account").unwrap();
+        let accountid = get_accountid_from_str(account);
+        info!("ss58 is {}", accountid.to_ss58check());
+        // FIXME: signer must be participant's Pair. now will always be Alice
+        let _api = api.clone().set_signer(AccountKeyring::Alice.pair());
+
+        let xt: UncheckedExtrinsicV3<_, sr25519::Pair>  = compose_extrinsic!(
+            _api.clone(),
+            "EncointerCeremonies",
+            "register_participant"
+        );
+
+        // send and watch extrinsic until finalized
+        let tx_hash = _api.send_extrinsic(xt.hex_encode()).unwrap();
+        println!("Transaction got finalized. Phase should've advanced. tx hash: {:?}", tx_hash);       
+
+    }
+
+
+}
+
+fn get_accountid_from_str(account: &str) -> AccountId {
+    match &account[..2] {
+        "//" => sr25519::Pair::from_string(account, None).unwrap().public().into(),
+        _ => sr25519::Public::from_ss58check(account).unwrap().into(),
     }
 }

@@ -101,7 +101,7 @@ decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 		fn deposit_event() = default;
 
-		fn next_phase(origin) -> Result {
+		pub fn next_phase(origin) -> Result {
 			ensure_root(origin)?;
 			let current_phase = <CurrentPhase>::get();
 			let current_ceremony_index = <CurrentCeremonyIndex>::get();
@@ -132,7 +132,7 @@ decl_module! {
 			Ok(())
 		}
 
-		fn register_participant(origin) -> Result {
+		pub fn register_participant(origin) -> Result {
 			let sender = ensure_signed(origin)?;
 			ensure!(<CurrentPhase>::get() == CeremonyPhaseType::REGISTERING,
 				"registering participants can only be done during REGISTERING phase");
@@ -155,7 +155,7 @@ decl_module! {
 			Ok(())
 		}
 
-		fn register_witnesses(origin, witnesses: Vec<Witness<T::Signature, T::AccountId>>) -> Result {
+		pub fn register_witnesses(origin, witnesses: Vec<Witness<T::Signature, T::AccountId>>) -> Result {
 			let sender = ensure_signed(origin)?;
 			ensure!(<CurrentPhase>::get() == CeremonyPhaseType::WITNESSING,			
 				"registering witnesses can only be done during WITNESSING phase");

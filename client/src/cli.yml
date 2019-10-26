@@ -29,9 +29,19 @@ subcommands:
             - account:
                 required: true
                 index: 1
+    - register_participant:
+        about: call register_participant with extrinsic
+        settings:
+            - ColoredHelp
+        args:
+            - account:
+                required: true
+                index: 1
     - new_account:
         about: generate new account and store it in keystore
         settings:
             - ColoredHelp
     - listen:
         about: listen to events form EncointerCeremonies
+    - print_metadata:
+        about: query node metadata and print it to stdout
