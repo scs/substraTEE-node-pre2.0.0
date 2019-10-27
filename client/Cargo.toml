@@ -17,6 +17,11 @@ tiny-bip39 = "0.6.2"
 serde_json      = { version = "1.0"}
 clap            = { version = "2.33", features = [ "yaml" ] }
 
+[dependencies.serde]
+features = ["derive"]
+optional = true
+version = "1.0"
+
 [dependencies.codec]
 default-features = false
 package = "parity-scale-codec"
