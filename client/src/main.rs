@@ -159,7 +159,7 @@ fn main() {
 
         // send and watch extrinsic until finalized
         let tx_hash = _api.send_extrinsic(xt.hex_encode()).unwrap();
-        println!("Transaction got finalized. Phase should've advanced. tx hash: {:?}", tx_hash);       
+        println!("Transaction got finalized. tx hash: {:?}", tx_hash);       
 
     }
 
