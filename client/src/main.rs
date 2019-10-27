@@ -12,6 +12,11 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
+//! an RPC client to encointer node using websockets
+//! 
+//! examples
+//! encointer-client 127.0.0.1:9944 transfer //Alice 5G9RtsTbiYJYQYMHbWfyPoeuuxNaCbC16tZ2JGrZ4gRKwz14 1000
+//! 
 #![feature(rustc_private)]
 
 #[macro_use]
@@ -26,7 +31,7 @@ use substrate_api_client::{
     Api, node_metadata,
     compose_extrinsic,
     extrinsic, 
-    extrinsic::xt_primitives::{AccountId, UncheckedExtrinsicV3},
+    extrinsic::xt_primitives::{AccountId, UncheckedExtrinsicV3, GenericAddress},
     rpc::json_req,
     utils::{storage_key_hash, hexstr_to_hash, hexstr_to_u256, hexstr_to_vec},
 };
@@ -42,7 +47,7 @@ use encointer_node_runtime::{Event, Call, EncointerCeremoniesCall, BalancesCall,
     encointer_ceremonies::{ClaimOfAttendance, Witness, CeremonyIndexType,
         MeetupIndexType}
 }; 
-
+//use primitive_types::U256;
 use serde_json;
 use log::{info, debug, trace, warn};
 use log::Level;
@@ -143,6 +148,23 @@ fn main() {
         info!("ss58 is {}", accountid.to_ss58check());
         println!("balance for {} is {}", account, result);
     }
+
+    if let Some(_matches) = matches.subcommand_matches("transfer") {
+        let arg_from = _matches.value_of("from").unwrap();
+        let arg_to = _matches.value_of("to").unwrap();
+        let amount = u128::from_str_radix(_matches.value_of("amount").unwrap(),10).expect("amount can be converted to u128");
+        let from = get_accountid_from_str(arg_from);
+        let to = get_accountid_from_str(arg_to);
+        info!("from ss58 is {}", from.to_ss58check());
+        info!("to ss58 is {}", to.to_ss58check());
+        let _api = api.clone().set_signer(AccountKeyring::from_public(&from).unwrap().pair());
+        let xt = _api.balance_transfer(GenericAddress::from(to.0.clone()), amount);
+        let tx_hash = _api.send_extrinsic(xt.hex_encode()).unwrap();
+        println!("[+] Transaction got finalized. Hash: {:?}\n", tx_hash);
+        let result = _api.get_free_balance(&to);
+        println!("balance for {} is now {}", to, result);
+    }
+
 
     if let Some(_matches) = matches.subcommand_matches("register_participant") {
         let account = _matches.value_of("account").unwrap();
