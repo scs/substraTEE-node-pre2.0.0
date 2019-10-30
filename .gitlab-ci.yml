@@ -1,0 +1,95 @@
+
+stages:
+  - test
+  - build
+
+variables:
+  GIT_STRATEGY:                    fetch
+  CARGO_HOME:                      "/ci-cache/${CI_PROJECT_NAME}/cargo/${CI_JOB_NAME}"
+  SCCACHE_DIR:                     "/ci-cache/${CI_PROJECT_NAME}/sccache"
+  CARGO_INCREMENTAL:               0
+  CI_SERVER_NAME:                  "GitLab CI"
+  DOCKER_OS:                       "debian:stretch"
+  ARCH:                            "x86_64"
+
+.collect-artifacts:                &collect-artifacts
+  artifacts:
+    name:                          "${CI_JOB_NAME}_${CI_COMMIT_REF_NAME}"
+    when:                          on_success
+    expire_in:                     7 days
+    paths:
+      - artifacts/
+
+.docker-env:                       &docker-env
+  image:                           parity/rust-builder:latest
+  before_script:
+    - rustup show
+    - cargo --version
+    - sccache -s
+  only:
+    - master
+    - /^v[0-9]+\.[0-9]+.*$/        # i.e. v1.0, v2.1rc1
+    - schedules
+    - web
+    - /^[0-9]+$/                   # PRs
+  tags:
+    - linux-docker
+
+.build-only:                       &build-only
+  only:
+    - master
+    - /^v[0-9]+\.[0-9]+.*$/        # i.e. v1.0, v2.1rc1
+    - web
+
+#### stage:                        test
+
+test-linux-stable:                 &test-linux
+  stage:                           test
+  <<:                              *docker-env
+  variables:
+    # Enable debug assertions since we are running optimized builds for testing
+    # but still want to have debug assertions.
+    RUSTFLAGS: -Cdebug-assertions=y
+  except:
+    variables:
+      - $DEPLOY_TAG
+  script:
+    - time cargo test --all --release --verbose --locked |
+        tee output.log
+    - sccache -s
+  after_script:
+    - echo "___Collecting warnings for check_warnings job___"
+    - awk '/^warning:/,/^$/ { print }' output.log > ${CI_COMMIT_SHORT_SHA}_warnings.log
+  artifacts:
+    name:                          $CI_COMMIT_SHORT_SHA
+    expire_in:                     24 hrs
+    paths:
+      - ${CI_COMMIT_SHORT_SHA}_warnings.log
+
+
+
+#### stage:                        build
+
+build-linux-substrate:
+  stage:                           build
+  <<:                              *collect-artifacts
+  <<:                              *docker-env
+  <<:                              *build-only
+  except:
+    variables:
+      - $DEPLOY_TAG
+  script:
+    - time cargo build --release --verbose
+    - mkdir -p ./artifacts/substrate/
+    - mv ./target/release/substrate ./artifacts/substrate/.
+    - echo -n "Substrate version = "
+    - if [ "${CI_COMMIT_TAG}" ]; then
+        echo "${CI_COMMIT_TAG}" | tee ./artifacts/substrate/VERSION;
+      else
+        ./artifacts/substrate/substrate --version |
+          sed -n -r 's/^substrate ([0-9.]+.*-[0-9a-f]{7,13})-.*$/\1/p' |
+          tee ./artifacts/substrate/VERSION;
+      fi
+    - sha256sum ./artifacts/substrate/substrate | tee ./artifacts/substrate/substrate.sha256
+    - sccache -s
+
