@@ -66,20 +66,6 @@ fn main() {
     let keystore_path = "my_keystore";
 	let keystore = Store::open(keystore_path, None).unwrap();
 
-    if let Some(_matches) = matches.subcommand_matches("next_phase") {
-        let _api = api.clone().set_signer(AccountKeyring::Alice.pair());
-
-        let xt: UncheckedExtrinsicV3<_, sr25519::Pair>  = compose_extrinsic!(
-            _api.clone(),
-            "EncointerCeremonies",
-            "next_phase"
-        );
-
-        // send and watch extrinsic until finalized
-        let tx_hash = _api.send_extrinsic(xt.hex_encode()).unwrap();
-        println!("Transaction got finalized. Phase should've advanced. tx hash: {:?}", tx_hash);       
-    }
-
     if let Some(_matches) = matches.subcommand_matches("print_metadata") {
         let meta = api.get_metadata();
         println!(
@@ -165,6 +151,19 @@ fn main() {
         println!("balance for {} is now {}", to, result);
     }
 
+    if let Some(_matches) = matches.subcommand_matches("next_phase") {
+        let _api = api.clone().set_signer(AccountKeyring::Alice.pair());
+
+        let xt: UncheckedExtrinsicV3<_, sr25519::Pair>  = compose_extrinsic!(
+            _api.clone(),
+            "EncointerCeremonies",
+            "next_phase"
+        );
+
+        // send and watch extrinsic until finalized
+        let tx_hash = _api.send_extrinsic(xt.hex_encode()).unwrap();
+        println!("Transaction got finalized. Phase should've advanced. tx hash: {:?}", tx_hash);       
+    }
 
     if let Some(_matches) = matches.subcommand_matches("register_participant") {
         let account = _matches.value_of("account").unwrap();
