@@ -150,7 +150,8 @@ fn testnet_genesis(
         }),
         encointer_ceremonies: Some(EncointerCeremoniesConfig {
             //current_phase: CeremonyPhaseType::REGISTERING,
-            ceremony_reward: 1_000_000
+            ceremony_reward: 1_000_000,
+            ceremony_master: get_from_seed::<AccountId>("Alice"),
         }),
     }
 }

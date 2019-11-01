@@ -94,6 +94,7 @@ decl_storage! {
 		CurrentPhase get(current_phase): CeremonyPhaseType = CeremonyPhaseType::REGISTERING;
 
 		CeremonyReward get(ceremony_reward) config(): T::Balance;
+		CeremonyMaster get(ceremony_master) config(): T::AccountId;
 	}
 }
 
@@ -102,7 +103,8 @@ decl_module! {
 		fn deposit_event() = default;
 
 		pub fn next_phase(origin) -> Result {
-			ensure_root(origin)?;
+			let sender = ensure_signed(origin)?;
+			ensure!(sender == <CeremonyMaster<T>>::get(), "only the CeremonyMaster can call this function");
 			let current_phase = <CurrentPhase>::get();
 			let current_ceremony_index = <CurrentCeremonyIndex>::get();
 
@@ -446,6 +448,7 @@ mod tests {
 		}.assimilate_storage(&mut t).unwrap();		
 		encointer_ceremonies::GenesisConfig::<Test> {
 			ceremony_reward: REWARD,
+			ceremony_master: AccountKeyring::Alice.public().into(),
 		}.assimilate_storage(&mut t).unwrap();		
 		t.into()		
 	}
@@ -453,13 +456,14 @@ mod tests {
 	#[test]
 	fn ceremony_phase_statemachine_works() {
 		with_externalities(&mut new_test_ext(), || {
+			let master = AccountId::from(AccountKeyring::Alice);
 			assert_eq!(EncointerCeremonies::current_phase(), CeremonyPhaseType::REGISTERING);
 			assert_eq!(EncointerCeremonies::current_ceremony_index(), 0);
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			assert_eq!(EncointerCeremonies::current_phase(), CeremonyPhaseType::ASSIGNING);
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			assert_eq!(EncointerCeremonies::current_phase(), CeremonyPhaseType::WITNESSING);
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			assert_eq!(EncointerCeremonies::current_phase(), CeremonyPhaseType::REGISTERING);
 			assert_eq!(EncointerCeremonies::current_ceremony_index(), 1);						
 		});
@@ -494,17 +498,18 @@ mod tests {
 	#[test]
 	fn ceremony_index_and_purging_registry_works() {
 		with_externalities(&mut new_test_ext(), || {
+			let master = AccountId::from(AccountKeyring::Alice);
 			let alice = AccountId::from(AccountKeyring::Alice);
 			let cindex = EncointerCeremonies::current_ceremony_index();
 			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(alice.clone())));
 			assert_eq!(EncointerCeremonies::participant_registry(&cindex, &0), alice);
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			// now assigning
 			assert_eq!(EncointerCeremonies::participant_registry(&cindex, &0), alice);
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			// now witnessing
 			assert_eq!(EncointerCeremonies::participant_registry(&cindex, &0), alice);
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			// now again registering
 			let new_cindex = EncointerCeremonies::current_ceremony_index();
 			assert_eq!(new_cindex, cindex+1);
@@ -517,8 +522,9 @@ mod tests {
 	#[test]
 	fn registering_participant_in_wrong_phase_fails() {
 		with_externalities(&mut new_test_ext(), || {
+			let master = AccountId::from(AccountKeyring::Alice);
 			let alice = AccountId::from(AccountKeyring::Alice);
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			assert_eq!(EncointerCeremonies::current_phase(), CeremonyPhaseType::ASSIGNING);
 			assert!(EncointerCeremonies::register_participant(Origin::signed(alice.clone())).is_err());
 		});
@@ -527,6 +533,7 @@ mod tests {
 	#[test]
 	fn assigning_meetup_works() {
 		with_externalities(&mut new_test_ext(), || {
+			let master = AccountId::from(AccountKeyring::Alice);
 			let alice = AccountId::from(AccountKeyring::Alice);
 			let bob = AccountId::from(AccountKeyring::Bob);
 			let ferdie = AccountId::from(AccountKeyring::Ferdie);
@@ -534,7 +541,7 @@ mod tests {
 			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(alice.clone())));
 			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(bob.clone())));
 			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(ferdie.clone())));
-			//assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			//assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			assert_ok!(EncointerCeremonies::assign_meetups());
 			assert_eq!(EncointerCeremonies::meetup_count(), 1);
 			let meetup = EncointerCeremonies::meetup_registry(&cindex, &SINGLE_MEETUP_INDEX);
@@ -552,14 +559,15 @@ mod tests {
 	#[test]
 	fn assigning_meetup_at_phase_change_and_purge_works() {
 		with_externalities(&mut new_test_ext(), || {
+			let master = AccountId::from(AccountKeyring::Alice);
 			let alice = AccountId::from(AccountKeyring::Alice);
 			let cindex = 0;
 			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(alice.clone())));
 			assert_eq!(EncointerCeremonies::meetup_index(&cindex, &alice), NONE);
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			assert_eq!(EncointerCeremonies::meetup_index(&cindex, &alice), SINGLE_MEETUP_INDEX);
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			assert_eq!(EncointerCeremonies::meetup_index(&cindex, &alice), NONE);
 		});
 	}
@@ -602,13 +610,14 @@ mod tests {
 	#[test]
 	fn register_witnesses_works() {
 		with_externalities(&mut new_test_ext(), || {
+			let master = AccountId::from(AccountKeyring::Alice);
 			let alice = AccountKeyring::Alice;
 			let bob = AccountKeyring::Bob;
 			let ferdie = AccountKeyring::Ferdie;
 			let cindex = 0;
 			register_alice_bob_ferdie();
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			// WITNESSING
 			assert_eq!(EncointerCeremonies::meetup_index(&cindex, &alice.into()), SINGLE_MEETUP_INDEX);
 
@@ -631,12 +640,13 @@ mod tests {
 	#[test]
 	fn register_witnesses_for_non_participant_fails_silently() {
 		with_externalities(&mut new_test_ext(), || {
+			let master = AccountId::from(AccountKeyring::Alice);
 			let alice = AccountKeyring::Alice;
 			let bob = AccountKeyring::Bob;
 			let cindex = 0;
 			register_alice_bob_ferdie();
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			// WITNESSING
 			gets_witnessed_by(alice.into(), vec!(bob,alice),3);
 			assert_eq!(EncointerCeremonies::witness_count(), 1);	
@@ -650,13 +660,14 @@ mod tests {
 	#[test]
 	fn register_witnesses_for_non_participant_fails() {
 		with_externalities(&mut new_test_ext(), || {
+			let master = AccountId::from(AccountKeyring::Alice);
 			let alice = AccountKeyring::Alice;
 			let ferdie = AccountKeyring::Ferdie;
 			let eve = AccountKeyring::Eve;
 			let cindex = 0;
 			register_alice_bob_ferdie();
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			// WITNESSING
 			let mut eve_witnesses: Vec<TestWitness> = vec!();
 			eve_witnesses.insert(0, meetup_claim_sign(eve.into(), alice.clone(),3));
@@ -672,13 +683,14 @@ mod tests {
 	#[test]
 	fn register_witnesses_with_non_participant_fails_silently() {
 		with_externalities(&mut new_test_ext(), || {
+			let master = AccountId::from(AccountKeyring::Alice);
 			let alice = AccountKeyring::Alice;
 			let bob = AccountKeyring::Bob;
 			let eve = AccountKeyring::Eve;
 			let cindex = 0;
 			register_alice_bob_ferdie();
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			// WITNESSING
 			gets_witnessed_by(alice.into(), vec!(bob, eve), 3);
 			assert_eq!(EncointerCeremonies::witness_count(), 1);	
@@ -691,13 +703,14 @@ mod tests {
 	#[test]
 	fn register_witnesses_with_wrong_meetup_index_fails() {
 		with_externalities(&mut new_test_ext(), || {
+			let master = AccountId::from(AccountKeyring::Alice);
 			let alice = AccountKeyring::Alice;
 			let bob = AccountKeyring::Bob;
 			let ferdie = AccountKeyring::Ferdie;
 			let cindex = 0;
 			register_alice_bob_ferdie();
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			// WITNESSING
 			let mut alice_witnesses: Vec<TestWitness> = vec!();
 			alice_witnesses.insert(0, meetup_claim_sign(alice.into(), bob.clone(), 3));
@@ -727,13 +740,14 @@ mod tests {
 	#[test]
 	fn register_witnesses_with_wrong_ceremony_index_fails() {
 		with_externalities(&mut new_test_ext(), || {
+			let master = AccountId::from(AccountKeyring::Alice);
 			let alice = AccountKeyring::Alice;
 			let bob = AccountKeyring::Bob;
 			let ferdie = AccountKeyring::Ferdie;
 			let cindex = 0;
 			register_alice_bob_ferdie();
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			// WITNESSING
 			let mut alice_witnesses: Vec<TestWitness> = vec!();
 			alice_witnesses.insert(0, meetup_claim_sign(alice.into(), bob.clone(), 3));
@@ -801,6 +815,7 @@ mod tests {
 	#[test]
 	fn ballot_meetup_n_votes_works() {
 		with_externalities(&mut new_test_ext(), || {
+			let master = AccountId::from(AccountKeyring::Alice);
 			let alice = AccountKeyring::Alice;
 			let bob = AccountKeyring::Bob;
 			let ferdie = AccountKeyring::Ferdie;
@@ -811,9 +826,9 @@ mod tests {
 			register_alice_bob_ferdie();
 			register_charlie_dave_eve();
 
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			// ASSIGNING
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			// WITNESSING
 			gets_witnessed_by(alice.into(), vec!(bob),5);
 			gets_witnessed_by(bob.into(), vec!(alice),5);
@@ -844,6 +859,7 @@ mod tests {
 	#[test]
 	fn issue_reward_works() {
 		with_externalities(&mut new_test_ext(), || {
+			let master = AccountId::from(AccountKeyring::Alice);
 			let alice = AccountKeyring::Alice;
 			let bob = AccountKeyring::Bob;
 			let ferdie = AccountKeyring::Ferdie;
@@ -854,9 +870,9 @@ mod tests {
 			register_alice_bob_ferdie();
 			register_charlie_dave_eve();
 
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			// ASSIGNING
-			assert_ok!(EncointerCeremonies::next_phase(Origin::ROOT));
+			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			// WITNESSING
 			// ferdi doesn't show up
 			// eve signs no one else
