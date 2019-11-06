@@ -63,5 +63,7 @@ subcommands:
         about: query entire meetup registry and list all meetups and participants
     - list_participant_registry:
         about: query entire participant registry 
+    - list_witnesses_registry:
+        about: query entire witnesses registry 
 
  
