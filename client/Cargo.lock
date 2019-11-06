@@ -570,11 +570,11 @@ dependencies = [
  "serde_json 1.0.41 (registry+https://github.com/rust-lang/crates.io-index)",
  "srml-balances 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "srml-system 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
- "substrate-api-client 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-api-client 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
  "substrate-bip39 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "substrate-keyring 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "substrate-keystore 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
  "tiny-bip39 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -602,7 +602,7 @@ dependencies = [
  "substrate-client 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "substrate-consensus-babe-primitives 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "substrate-offchain-primitives 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
  "substrate-session 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "substrate-wasm-builder-runner 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -2579,7 +2579,7 @@ dependencies = [
  "parity-scale-codec 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc_version 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "sr-std 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
  "substrate-state-machine 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "substrate-trie 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "tiny-keccak 1.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2596,7 +2596,7 @@ dependencies = [
  "parity-scale-codec 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc_version 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "sr-std 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
  "substrate-state-machine 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
  "substrate-trie 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
  "tiny-keccak 1.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2617,7 +2617,7 @@ dependencies = [
  "sr-io 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "sr-std 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "substrate-application-crypto 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
 ]
 
 [[package]]
@@ -2636,7 +2636,7 @@ dependencies = [
  "sr-io 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
  "sr-std 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
  "substrate-application-crypto 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
 ]
 
 [[package]]
@@ -2782,7 +2782,7 @@ dependencies = [
  "srml-support 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "srml-system 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "substrate-finality-grandpa-primitives 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
 ]
 
 [[package]]
@@ -2799,7 +2799,7 @@ dependencies = [
  "srml-support 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "srml-system 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "substrate-keyring 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
 ]
 
 [[package]]
@@ -2816,7 +2816,7 @@ dependencies = [
  "srml-support 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
  "srml-system 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
  "substrate-keyring 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
 ]
 
 [[package]]
@@ -2827,7 +2827,7 @@ dependencies = [
  "parity-scale-codec 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.101 (registry+https://github.com/rust-lang/crates.io-index)",
  "sr-std 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
 ]
 
 [[package]]
@@ -2838,7 +2838,7 @@ dependencies = [
  "parity-scale-codec 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.101 (registry+https://github.com/rust-lang/crates.io-index)",
  "sr-std 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
 ]
 
 [[package]]
@@ -2889,7 +2889,7 @@ dependencies = [
  "srml-metadata 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "srml-support-procedural 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "substrate-inherents 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
 ]
 
 [[package]]
@@ -2909,7 +2909,7 @@ dependencies = [
  "srml-metadata 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
  "srml-support-procedural 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
  "substrate-inherents 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
 ]
 
 [[package]]
@@ -2993,7 +2993,7 @@ dependencies = [
  "sr-std 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "sr-version 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "srml-support 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
 ]
 
 [[package]]
@@ -3010,7 +3010,7 @@ dependencies = [
  "sr-std 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
  "sr-version 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
  "srml-support 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
 ]
 
 [[package]]
@@ -3074,7 +3074,7 @@ dependencies = [
 [[package]]
 name = "substrate-api-client"
 version = "2.0.0"
-source = "git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id#43124b582d5bbc42e8147d7080c59a21051483a9"
+source = "git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map#4ff3c9125282bebfeefe04bed539a2cca9b48300"
 dependencies = [
  "env_logger 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "hex 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3093,7 +3093,7 @@ dependencies = [
  "srml-metadata 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
  "srml-support 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
  "srml-system 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
  "ws 0.7.9 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -3106,7 +3106,7 @@ dependencies = [
  "serde 1.0.101 (registry+https://github.com/rust-lang/crates.io-index)",
  "sr-io 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "sr-std 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
 ]
 
 [[package]]
@@ -3118,7 +3118,7 @@ dependencies = [
  "serde 1.0.101 (registry+https://github.com/rust-lang/crates.io-index)",
  "sr-io 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
  "sr-std 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
 ]
 
 [[package]]
@@ -3155,7 +3155,7 @@ dependencies = [
  "substrate-executor 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "substrate-inherents 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "substrate-keyring 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
  "substrate-state-machine 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "substrate-telemetry 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "substrate-trie 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
@@ -3191,7 +3191,7 @@ dependencies = [
  "sr-std 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "sr-version 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "substrate-inherents 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
 ]
 
 [[package]]
@@ -3208,7 +3208,7 @@ dependencies = [
  "substrate-client 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "substrate-consensus-common 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "substrate-inherents 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
  "substrate-telemetry 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
 ]
 
@@ -3228,7 +3228,7 @@ dependencies = [
  "sr-io 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "sr-version 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "substrate-panic-handler 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
  "substrate-serializer 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "substrate-state-machine 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "substrate-trie 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
@@ -3280,7 +3280,7 @@ dependencies = [
  "sr-primitives 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "strum 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "strum_macros 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
 ]
 
 [[package]]
@@ -3292,7 +3292,7 @@ dependencies = [
  "sr-primitives 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
  "strum 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "strum_macros 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
 ]
 
 [[package]]
@@ -3306,7 +3306,7 @@ dependencies = [
  "rand 0.6.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.41 (registry+https://github.com/rust-lang/crates.io-index)",
  "substrate-application-crypto 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
  "subtle 2.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -3340,7 +3340,7 @@ dependencies = [
 [[package]]
 name = "substrate-primitives"
 version = "2.0.0"
-source = "git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id#43124b582d5bbc42e8147d7080c59a21051483a9"
+source = "git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map#4ff3c9125282bebfeefe04bed539a2cca9b48300"
 dependencies = [
  "base58 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "blake2-rfc 0.2.18 (git+https://github.com/cesarb/blake2-rfc)",
@@ -3387,7 +3387,7 @@ dependencies = [
  "sr-primitives 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "sr-std 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "substrate-client 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
 ]
 
 [[package]]
@@ -3401,7 +3401,7 @@ dependencies = [
  "parity-scale-codec 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "parking_lot 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "substrate-panic-handler 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
  "substrate-trie 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
  "trie-db 0.15.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "trie-root 0.15.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3419,7 +3419,7 @@ dependencies = [
  "parking_lot 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "substrate-panic-handler 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
  "substrate-trie 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
  "trie-db 0.15.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "trie-root 0.15.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3456,7 +3456,7 @@ dependencies = [
  "memory-db 0.15.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "parity-scale-codec 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "sr-std 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
  "trie-db 0.15.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "trie-root 0.15.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -3470,7 +3470,7 @@ dependencies = [
  "memory-db 0.15.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "parity-scale-codec 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "sr-std 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)",
- "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)",
+ "substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)",
  "trie-db 0.15.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "trie-root 0.15.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -4520,7 +4520,7 @@ dependencies = [
 "checksum strsim 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8ea5119cdb4c55b55d432abb513a0429384878c15dde60cc77b1c99de1a95a6a"
 "checksum strum 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e5d1c33039533f051704951680f1adfd468fd37ac46816ded0d9ee068e60f05f"
 "checksum strum_macros 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)" = "47cd23f5c7dee395a00fa20135e2ec0fffcdfa151c56182966d7a3261343432e"
-"checksum substrate-api-client 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)" = "<none>"
+"checksum substrate-api-client 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)" = "<none>"
 "checksum substrate-application-crypto 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)" = "<none>"
 "checksum substrate-application-crypto 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)" = "<none>"
 "checksum substrate-bip39 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "3be511be555a3633e71739a79e4ddff6a6aaa6579fa6114182a51d72c3eb93c5"
@@ -4538,7 +4538,7 @@ dependencies = [
 "checksum substrate-offchain-primitives 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)" = "<none>"
 "checksum substrate-panic-handler 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)" = "<none>"
 "checksum substrate-panic-handler 2.0.0 (git+https://github.com/paritytech/substrate?rev=f17d023bbe179f15678ac9989f471c9b18917e17)" = "<none>"
-"checksum substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client?branch=jsonreq_with_id)" = "<none>"
+"checksum substrate-primitives 2.0.0 (git+https://github.com/scs/substrate-api-client.git?branch=brenzi-fix-double-map)" = "<none>"
 "checksum substrate-serializer 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)" = "<none>"
 "checksum substrate-session 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)" = "<none>"
 "checksum substrate-state-machine 2.0.0 (git+https://github.com/paritytech/substrate?rev=9b08e7ff938a45dbec7fcdb854063202e2b0cb48)" = "<none>"

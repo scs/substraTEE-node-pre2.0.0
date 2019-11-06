@@ -59,5 +59,9 @@ subcommands:
             - amount:
                 required: true
                 index: 3
+    - list_meetup_registry:
+        about: query entire meetup registry and list all meetups and participants
+    - list_participant_registry:
+        about: query entire participant registry 
 
  

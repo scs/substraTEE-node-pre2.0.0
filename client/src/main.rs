@@ -33,7 +33,7 @@ use substrate_api_client::{
     extrinsic, 
     extrinsic::xt_primitives::{AccountId, UncheckedExtrinsicV3, GenericAddress},
     rpc::json_req,
-    utils::{storage_key_hash, hexstr_to_hash, hexstr_to_u256, hexstr_to_vec},
+    utils::{storage_key_hash, hexstr_to_hash, hexstr_to_u256, hexstr_to_u64, hexstr_to_vec},
 };
 use codec::{Encode, Decode};
 use primitives::{
@@ -45,7 +45,7 @@ use bip39::{Mnemonic, Language, MnemonicType};
 use encointer_node_runtime::{Event, Call, EncointerCeremoniesCall, BalancesCall, 
     Signature, Hash,
     encointer_ceremonies::{ClaimOfAttendance, Witness, CeremonyIndexType,
-        MeetupIndexType}
+        MeetupIndexType, ParticipantIndexType}
 }; 
 //use primitive_types::U256;
 use serde_json;
@@ -183,7 +183,49 @@ fn main() {
         println!("Transaction got finalized. tx hash: {:?}", tx_hash);       
 
     }
+    if let Some(_matches) = matches.subcommand_matches("list_meetup_registry") {
+        let cindex = hexstr_to_u64(api
+            .get_storage("EncointerCeremonies", "CurrentCeremonyIndex", None)
+            .unwrap()
+            ).unwrap() as CeremonyIndexType;
+        println!("listing meetups for ceremony nr {}", cindex);
+        let mcount = hexstr_to_u64(api
+            .get_storage("EncointerCeremonies", "MeetupCount", None)
+            .unwrap()
+            ).unwrap() as MeetupIndexType;
+        println!("number of meetups assigned:  {}", mcount);
+        let res = api
+            .get_storage_double_map("EncointerCeremonies", "MeetupRegistry", 
+                cindex.encode(), 0u64.encode()).unwrap();
+        println!("MeetupRegistry[{}, {}] = {}", cindex, 0, res);
+        let res = api
+            .get_storage_double_map("EncointerCeremonies", "MeetupRegistry", 
+                cindex.encode(), 1u64.encode()).unwrap();
+        println!("MeetupRegistry[{}, {}] = {}", cindex, 1, res);
+                let res = api
+            .get_storage_double_map("EncointerCeremonies", "MeetupRegistry", 
+                cindex.encode(), 42u64.encode()).unwrap();
+        println!("MeetupRegistry[{}, {}] = {}", cindex, 42, res);
+    }
 
+    if let Some(_matches) = matches.subcommand_matches("list_participant_registry") {
+        let cindex = hexstr_to_u64(api
+            .get_storage("EncointerCeremonies", "CurrentCeremonyIndex", None)
+            .unwrap()
+            ).unwrap() as CeremonyIndexType;
+        println!("listing participants for ceremony nr {}", cindex);
+        let pcount = hexstr_to_u64(api
+            .get_storage("EncointerCeremonies", "ParticipantCount", None)
+            .unwrap()
+            ).unwrap() as ParticipantIndexType;
+        println!("number of participants assigned:  {}", pcount);
+        for p in 0..pcount {
+            let res = api
+                .get_storage_double_map("EncointerCeremonies", "ParticipantRegistry", 
+                    cindex.encode(), p.encode()).unwrap();
+            println!("ParticipantRegistry[{}, {}] = {}", cindex, 0, res);
+        }
+    }
 
 }
 
