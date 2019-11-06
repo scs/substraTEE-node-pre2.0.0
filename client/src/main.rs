@@ -223,7 +223,28 @@ fn main() {
             let res = api
                 .get_storage_double_map("EncointerCeremonies", "ParticipantRegistry", 
                     cindex.encode(), p.encode()).unwrap();
-            println!("ParticipantRegistry[{}, {}] = {}", cindex, 0, res);
+            let accountid: AccountId = Decode::decode(&mut &hexstr_to_vec(res).unwrap()[..]).unwrap();
+            println!("ParticipantRegistry[{}, {}] = {}", cindex, p, accountid.to_ss58check());
+        }
+    }
+
+    if let Some(_matches) = matches.subcommand_matches("list_witnesses_registry") {
+        let cindex = hexstr_to_u64(api
+            .get_storage("EncointerCeremonies", "CurrentCeremonyIndex", None)
+            .unwrap()
+            ).unwrap() as CeremonyIndexType;
+        println!("listing witnesses for ceremony nr {}", cindex);
+        let wcount = hexstr_to_u64(api
+            .get_storage("EncointerCeremonies", "WitnessCount", None)
+            .unwrap()
+            ).unwrap() as ParticipantIndexType;
+        println!("number of witnesses testimonials:  {}", wcount);
+        for p in 0..wcount {
+            let res = api
+                .get_storage_double_map("EncointerCeremonies", "WitnessRegistry", 
+                    cindex.encode(), p.encode()).unwrap();
+            let witnesses: Vec<Witness<Signature, AccountId>> = Decode::decode(&mut &hexstr_to_vec(res).unwrap()[..]).unwrap();
+            println!("WitnessRegistry[{}, {}] = {:?}", cindex, p, witnesses);
         }
     }
 
