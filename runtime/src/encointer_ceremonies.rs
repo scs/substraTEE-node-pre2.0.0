@@ -73,21 +73,21 @@ pub struct ClaimOfAttendance<AccountId> {
 decl_storage! {
 	trait Store for Module<T: Trait> as EncointerCeremonies {
 		// everyone who registered for a ceremony
-		ParticipantRegistry get(participant_registry): double_map CeremonyIndexType, twox_128(ParticipantIndexType) => T::AccountId;
-		ParticipantIndex get(participant_index): double_map CeremonyIndexType, twox_128(T::AccountId) => ParticipantIndexType;
+		ParticipantRegistry get(participant_registry): double_map CeremonyIndexType, blake2_256(ParticipantIndexType) => T::AccountId;
+		ParticipantIndex get(participant_index): double_map CeremonyIndexType, blake2_256(T::AccountId) => ParticipantIndexType;
 		ParticipantCount get(participant_count): ParticipantIndexType;
 
 		// all meetups for each ceremony mapping to a vec of participants
-		MeetupRegistry get(meetup_registry): double_map CeremonyIndexType, twox_128(MeetupIndexType) => Vec<T::AccountId>;
-		MeetupIndex get(meetup_index): double_map CeremonyIndexType, twox_128(T::AccountId) => MeetupIndexType;
+		MeetupRegistry get(meetup_registry): double_map CeremonyIndexType, blake2_256(MeetupIndexType) => Vec<T::AccountId>;
+		MeetupIndex get(meetup_index): double_map CeremonyIndexType, blake2_256(T::AccountId) => MeetupIndexType;
 		MeetupCount get(meetup_count): MeetupIndexType;
 
 		// collect fellow meetup participants accounts who witnessed key account
-		WitnessRegistry get(witness_registry): double_map CeremonyIndexType, twox_128(WitnessIndexType) => Vec<T::AccountId>;
-		WitnessIndex get(witness_index): double_map CeremonyIndexType, twox_128(T::AccountId) => WitnessIndexType;
+		WitnessRegistry get(witness_registry): double_map CeremonyIndexType, blake2_256(WitnessIndexType) => Vec<T::AccountId>;
+		WitnessIndex get(witness_index): double_map CeremonyIndexType, blake2_256(T::AccountId) => WitnessIndexType;
 		WitnessCount get(witness_count): WitnessIndexType;
 		// how many peers does each participants observe at their meetup
-		MeetupParticipantCountVote get(meetup_participant_count_vote): double_map CeremonyIndexType, twox_128(T::AccountId) => u32;
+		MeetupParticipantCountVote get(meetup_participant_count_vote): double_map CeremonyIndexType, blake2_256(T::AccountId) => u32;
 
 		CurrentCeremonyIndex get(current_ceremony_index): CeremonyIndexType;
 		LastCeremonyBlock get(last_ceremony_block): T::BlockNumber;

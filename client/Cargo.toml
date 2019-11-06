@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-substrate-api-client = { git = "https://github.com/scs/substrate-api-client.git", branch = "jsonreq_with_id"}
+substrate-api-client = { git = "https://github.com/scs/substrate-api-client.git", branch = "brenzi-fix-double-map"}
 log = "0.4"
 env_logger = "0.6"
 hex = "0.3.2"
@@ -63,7 +63,7 @@ package = "substrate-keyring"
 
 
 [patch."https://github.com/paritytech/substrate"]
-substrate-primitives = { package = "substrate-primitives", git = "https://github.com/scs/substrate-api-client", branch = "jsonreq_with_id", default-features = false }
+substrate-primitives = { package = "substrate-primitives", git = "https://github.com/scs/substrate-api-client", branch = "brenzi-fix-double-map", default-features = false }
 
 [patch.crates-io]
 ed25519-dalek = { git = "https://github.com/scs/ed25519-dalek.git", branch = "no_std_sgx"}
