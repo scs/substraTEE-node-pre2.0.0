@@ -196,16 +196,13 @@ fn main() {
         println!("number of meetups assigned:  {}", mcount);
         let res = api
             .get_storage_double_map("EncointerCeremonies", "MeetupRegistry", 
-                cindex.encode(), 0u64.encode()).unwrap();
-        println!("MeetupRegistry[{}, {}] = {}", cindex, 0, res);
-        let res = api
-            .get_storage_double_map("EncointerCeremonies", "MeetupRegistry", 
-                cindex.encode(), 1u64.encode()).unwrap();
-        println!("MeetupRegistry[{}, {}] = {}", cindex, 1, res);
-                let res = api
-            .get_storage_double_map("EncointerCeremonies", "MeetupRegistry", 
                 cindex.encode(), 42u64.encode()).unwrap();
-        println!("MeetupRegistry[{}, {}] = {}", cindex, 42, res);
+        let participants: Vec<AccountId> = Decode::decode(&mut &hexstr_to_vec(res).unwrap()[..]).unwrap();
+        println!("MeetupRegistry[{}, {}]participants are:", cindex, 42);
+        for p in participants.iter() {
+            println!("   {:?}", p);
+        }
+        
     }
 
     if let Some(_matches) = matches.subcommand_matches("list_participant_registry") {
@@ -224,7 +221,7 @@ fn main() {
                 .get_storage_double_map("EncointerCeremonies", "ParticipantRegistry", 
                     cindex.encode(), p.encode()).unwrap();
             let accountid: AccountId = Decode::decode(&mut &hexstr_to_vec(res).unwrap()[..]).unwrap();
-            println!("ParticipantRegistry[{}, {}] = {}", cindex, p, accountid.to_ss58check());
+            println!("ParticipantRegistry[{}, {}] = {:?}", cindex, p, accountid);
         }
     }
 
@@ -243,7 +240,8 @@ fn main() {
             let res = api
                 .get_storage_double_map("EncointerCeremonies", "WitnessRegistry", 
                     cindex.encode(), p.encode()).unwrap();
-            let witnesses: Vec<Witness<Signature, AccountId>> = Decode::decode(&mut &hexstr_to_vec(res).unwrap()[..]).unwrap();
+            println!("WitnessRegistry[{}, {}] raw = {}", cindex, p, res);
+            let witnesses: Vec<AccountId> = Decode::decode(&mut &hexstr_to_vec(res).unwrap()[..]).unwrap();
             println!("WitnessRegistry[{}, {}] = {:?}", cindex, p, witnesses);
         }
     }
