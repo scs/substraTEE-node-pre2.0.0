@@ -174,10 +174,18 @@ decl_module! {
 			for w in 0..num_signed {
 				let witness = &witnesses[w];
 				let witness_account = &witnesses[w].public;
-				if meetup_participants.contains(witness_account) == false { continue };
-				if witness.claim.ceremony_index != cindex { continue };
-				if witness.claim.meetup_index != meetup_index { continue };
-				if Self::verify_witness_signature(witness.clone()).is_err() { continue };
+				if meetup_participants.contains(witness_account) == false { 
+					print("ignoring witness that isn't a meetup participant");
+					continue };
+				if witness.claim.ceremony_index != cindex { 
+					print("ignoring claim with wrong ceremony index");
+					continue };
+				if witness.claim.meetup_index != meetup_index { 
+					print("ignoring claim with wrong meetup index");
+					continue };
+				if Self::verify_witness_signature(witness.clone()).is_err() { 
+					print("ignoring witness with bad signature");
+					continue };
 				// witness is legit. insert it!
 				verified_witness_accounts.insert(0, witness_account.clone());
 				// is it a problem if this number isn't equal for all claims? Guess not.
@@ -221,7 +229,10 @@ impl<T: Trait> Module<T> {
 		<MeetupRegistry<T>>::remove_prefix(&index);
 		<MeetupIndex<T>>::remove_prefix(&index);
 		<MeetupCount>::put(0);
-
+		<WitnessRegistry<T>>::remove_prefix(&index);
+		<WitnessIndex<T>>::remove_prefix(&index);
+		<WitnessCount>::put(0);
+		<MeetupParticipantCountVote<T>>::remove_prefix(&index);
 		Ok(())
 	}
 	
