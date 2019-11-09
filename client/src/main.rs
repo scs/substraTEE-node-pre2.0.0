@@ -218,9 +218,10 @@ fn main() {
         for p in 1..pcount+1 {
             let accountid = get_participant(&api, cindex, p)
                 .expect("error getting participant");
-            let windex = get_participant_witness_index(&api, cindex, &accountid)
-                .expect("error querying windex");
-            participants_windex.insert(windex as WitnessIndexType, accountid);
+            match get_participant_witness_index(&api, cindex, &accountid) {
+                Some(windex) => participants_windex.insert(windex as WitnessIndexType, accountid),
+                _ => continue,
+            };
         }
         for w in 1..wcount+1 {
             let witnesses = get_witnesses(&api, cindex, w);
