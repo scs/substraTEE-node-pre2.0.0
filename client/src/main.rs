@@ -45,7 +45,7 @@ use bip39::{Mnemonic, Language, MnemonicType};
 use encointer_node_runtime::{Event, Call, EncointerCeremoniesCall, BalancesCall, 
     Signature, Hash,
     encointer_ceremonies::{ClaimOfAttendance, Witness, CeremonyIndexType,
-        MeetupIndexType, ParticipantIndexType}
+        MeetupIndexType, ParticipantIndexType, WitnessIndexType}
 }; 
 //use primitive_types::U256;
 use serde_json;
@@ -53,6 +53,7 @@ use log::{info, debug, trace, warn};
 use log::Level;
 use clap::App;
 use std::sync::mpsc::channel;
+use std::collections::HashMap;
 
 fn main() {
     env_logger::init();
@@ -202,7 +203,6 @@ fn main() {
         for p in participants.iter() {
             println!("   {:?}", p);
         }
-        
     }
 
     if let Some(_matches) = matches.subcommand_matches("list_participant_registry") {
@@ -236,13 +236,34 @@ fn main() {
             .unwrap()
             ).unwrap() as ParticipantIndexType;
         println!("number of witnesses testimonials:  {}", wcount);
-        for p in 0..wcount {
+        let pcount = hexstr_to_u64(api
+            .get_storage("EncointerCeremonies", "ParticipantCount", None)
+            .unwrap()
+            ).unwrap() as ParticipantIndexType;
+
+        let mut participants_windex = HashMap::new();
+        for p in 0..pcount {
+            let res = api
+                .get_storage_double_map("EncointerCeremonies", "ParticipantRegistry", 
+                    cindex.encode(), p.encode()).unwrap();
+            let accountid: AccountId = Decode::decode(&mut &hexstr_to_vec(res).unwrap()[..]).unwrap();
+            match hexstr_to_u64(api
+                .get_storage_double_map("EncointerCeremonies", "WitnessIndex", 
+                    cindex.encode(), p.encode()).unwrap()) {
+                        Ok(windex) => {
+                            println!("found windex {} for {}", windex, accountid);
+                            participants_windex.insert(windex as WitnessIndexType, accountid);
+                        },
+                        _ => println!("error querying windex"),
+            };
+        }
+
+        for w in 0..wcount {
             let res = api
                 .get_storage_double_map("EncointerCeremonies", "WitnessRegistry", 
-                    cindex.encode(), p.encode()).unwrap();
-            println!("WitnessRegistry[{}, {}] raw = {}", cindex, p, res);
+                    cindex.encode(), w.encode()).unwrap();
             let witnesses: Vec<AccountId> = Decode::decode(&mut &hexstr_to_vec(res).unwrap()[..]).unwrap();
-            println!("WitnessRegistry[{}, {}] = {:?}", cindex, p, witnesses);
+            println!("WitnessRegistry[{}, {} ({})] = {:?}", cindex, w, participants_windex[&w], witnesses);
         }
     }
 
