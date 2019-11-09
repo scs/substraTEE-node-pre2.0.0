@@ -185,84 +185,45 @@ fn main() {
 
     }
     if let Some(_matches) = matches.subcommand_matches("list_meetup_registry") {
-        let cindex = hexstr_to_u64(api
-            .get_storage("EncointerCeremonies", "CurrentCeremonyIndex", None)
-            .unwrap()
-            ).unwrap() as CeremonyIndexType;
+        let cindex = get_ceremony_index(&api);
         println!("listing meetups for ceremony nr {}", cindex);
-        let mcount = hexstr_to_u64(api
-            .get_storage("EncointerCeremonies", "MeetupCount", None)
-            .unwrap()
-            ).unwrap() as MeetupIndexType;
+        let mcount = get_meetup_count(&api);
         println!("number of meetups assigned:  {}", mcount);
-        let res = api
-            .get_storage_double_map("EncointerCeremonies", "MeetupRegistry", 
-                cindex.encode(), 42u64.encode()).unwrap();
-        let participants: Vec<AccountId> = Decode::decode(&mut &hexstr_to_vec(res).unwrap()[..]).unwrap();
-        println!("MeetupRegistry[{}, {}]participants are:", cindex, 42);
+        let participants = get_meetup_participants(&api, cindex, mcount).unwrap();
+        println!("MeetupRegistry[{}, {}]participants are:", cindex, mcount);
         for p in participants.iter() {
             println!("   {:?}", p);
         }
     }
 
     if let Some(_matches) = matches.subcommand_matches("list_participant_registry") {
-        let cindex = hexstr_to_u64(api
-            .get_storage("EncointerCeremonies", "CurrentCeremonyIndex", None)
-            .unwrap()
-            ).unwrap() as CeremonyIndexType;
+        let cindex = get_ceremony_index(&api);
         println!("listing participants for ceremony nr {}", cindex);
-        let pcount = hexstr_to_u64(api
-            .get_storage("EncointerCeremonies", "ParticipantCount", None)
-            .unwrap()
-            ).unwrap() as ParticipantIndexType;
+        let pcount = get_participant_count(&api);
         println!("number of participants assigned:  {}", pcount);
-        for p in 0..pcount {
-            let res = api
-                .get_storage_double_map("EncointerCeremonies", "ParticipantRegistry", 
-                    cindex.encode(), p.encode()).unwrap();
-            let accountid: AccountId = Decode::decode(&mut &hexstr_to_vec(res).unwrap()[..]).unwrap();
+        for p in 1..pcount+1 {
+            let accountid = get_participant(&api, cindex, p).unwrap();
             println!("ParticipantRegistry[{}, {}] = {:?}", cindex, p, accountid);
         }
     }
 
     if let Some(_matches) = matches.subcommand_matches("list_witnesses_registry") {
-        let cindex = hexstr_to_u64(api
-            .get_storage("EncointerCeremonies", "CurrentCeremonyIndex", None)
-            .unwrap()
-            ).unwrap() as CeremonyIndexType;
+        let cindex = get_ceremony_index(&api);
         println!("listing witnesses for ceremony nr {}", cindex);
-        let wcount = hexstr_to_u64(api
-            .get_storage("EncointerCeremonies", "WitnessCount", None)
-            .unwrap()
-            ).unwrap() as ParticipantIndexType;
+        let wcount = get_witness_count(&api);
         println!("number of witnesses testimonials:  {}", wcount);
-        let pcount = hexstr_to_u64(api
-            .get_storage("EncointerCeremonies", "ParticipantCount", None)
-            .unwrap()
-            ).unwrap() as ParticipantIndexType;
+        let pcount = get_participant_count(&api);
 
         let mut participants_windex = HashMap::new();
-        for p in 0..pcount {
-            let res = api
-                .get_storage_double_map("EncointerCeremonies", "ParticipantRegistry", 
-                    cindex.encode(), p.encode()).unwrap();
-            let accountid: AccountId = Decode::decode(&mut &hexstr_to_vec(res).unwrap()[..]).unwrap();
-            match hexstr_to_u64(api
-                .get_storage_double_map("EncointerCeremonies", "WitnessIndex", 
-                    cindex.encode(), p.encode()).unwrap()) {
-                        Ok(windex) => {
-                            println!("found windex {} for {}", windex, accountid);
-                            participants_windex.insert(windex as WitnessIndexType, accountid);
-                        },
-                        _ => println!("error querying windex"),
-            };
+        for p in 1..pcount+1 {
+            let accountid = get_participant(&api, cindex, p)
+                .expect("error getting participant");
+            let windex = get_participant_witness_index(&api, cindex, &accountid)
+                .expect("error querying windex");
+            participants_windex.insert(windex as WitnessIndexType, accountid);
         }
-
-        for w in 0..wcount {
-            let res = api
-                .get_storage_double_map("EncointerCeremonies", "WitnessRegistry", 
-                    cindex.encode(), w.encode()).unwrap();
-            let witnesses: Vec<AccountId> = Decode::decode(&mut &hexstr_to_vec(res).unwrap()[..]).unwrap();
+        for w in 1..wcount+1 {
+            let witnesses = get_witnesses(&api, cindex, w);
             println!("WitnessRegistry[{}, {} ({})] = {:?}", cindex, w, participants_windex[&w], witnesses);
         }
     }
@@ -275,3 +236,108 @@ fn get_accountid_from_str(account: &str) -> AccountId {
         _ => sr25519::Public::from_ss58check(account).unwrap().into(),
     }
 }
+
+fn get_ceremony_index(api: &Api<sr25519::Pair>) -> CeremonyIndexType {
+    hexstr_to_u64(api
+            .get_storage("EncointerCeremonies", "CurrentCeremonyIndex", None)
+            .unwrap()
+            ).unwrap() as CeremonyIndexType
+}
+
+fn get_meetup_count(api: &Api<sr25519::Pair>) -> MeetupIndexType {
+    hexstr_to_u64(api
+            .get_storage("EncointerCeremonies", "MeetupCount", None)
+            .unwrap()
+            ).unwrap() as MeetupIndexType
+}
+
+fn get_participant_count(api: &Api<sr25519::Pair>) -> ParticipantIndexType {
+    hexstr_to_u64(api
+            .get_storage("EncointerCeremonies", "ParticipantCount", None)
+            .unwrap()
+            ).unwrap() as ParticipantIndexType
+}
+fn get_witness_count(api: &Api<sr25519::Pair>) -> ParticipantIndexType {
+    hexstr_to_u64(api
+            .get_storage("EncointerCeremonies", "WitnessCount", None)
+            .unwrap()
+            ).unwrap() as ParticipantIndexType
+}
+
+fn get_participant(
+    api: &Api<sr25519::Pair>, 
+    cindex: CeremonyIndexType, 
+    pindex: ParticipantIndexType
+    ) -> Option<AccountId> 
+{
+    let res = api
+        .get_storage_double_map("EncointerCeremonies", "ParticipantRegistry", 
+            cindex.encode(), pindex.encode()).unwrap();
+    match res.as_str() {
+        "null" => None,
+        _ => {
+            let accountid: AccountId = Decode::decode(&mut &hexstr_to_vec(res).unwrap()[..]).unwrap();
+            Some(accountid)
+        }
+    }
+}
+
+fn get_meetup_participants(
+    api: &Api<sr25519::Pair>, 
+    cindex: CeremonyIndexType, 
+    mindex: MeetupIndexType
+    ) -> Option<Vec<AccountId>> 
+{
+    let res = api
+        .get_storage_double_map("EncointerCeremonies", "MeetupRegistry", 
+            cindex.encode(), mindex.encode()).unwrap();
+    match res.as_str() {
+        "null" => None,
+        _ => {
+            let participants: Vec<AccountId> = Decode::decode(&mut &hexstr_to_vec(res).unwrap()[..]).unwrap();
+            Some(participants)
+        }
+    }
+}
+
+fn get_witnesses(
+    api: &Api<sr25519::Pair>, 
+    cindex: CeremonyIndexType, 
+    windex: ParticipantIndexType, 
+    ) -> Option<Vec<AccountId>> 
+{
+    let res = api
+        .get_storage_double_map("EncointerCeremonies", "WitnessRegistry", 
+            cindex.encode(), windex.encode()).unwrap();
+    match res.as_str() {
+        "null" => None,
+        _ => {
+            let witnesses: Vec<AccountId> = Decode::decode(&mut &hexstr_to_vec(res).unwrap()[..]).unwrap();
+            Some(witnesses)
+        }
+    }
+}
+
+fn get_participant_witness_index(
+    api: &Api<sr25519::Pair>, 
+    cindex: CeremonyIndexType,
+    accountid: &AccountId
+    ) -> Option<ParticipantIndexType> 
+{
+
+    let res = api.get_storage_double_map("EncointerCeremonies", "WitnessIndex", 
+            cindex.encode(), accountid.encode()).unwrap();
+    match res.as_str() {
+        "null" => None,
+        _ => {
+            match hexstr_to_u64(res) {
+                Ok(windex) => Some(windex as ParticipantIndexType),
+                _ => None
+            }
+        }
+    }
+}
+
+
+
+
