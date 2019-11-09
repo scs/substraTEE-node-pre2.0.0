@@ -144,6 +144,7 @@ fn testnet_genesis(initial_authorities: Vec<(AuraId, GrandpaId)>,
 		}),
 	    encointer_ceremonies: Some(EncointerCeremoniesConfig {
             //current_phase: CeremonyPhaseType::REGISTERING,
+            current_ceremony_index: 1,
             ceremony_reward: 1_000_000,
             ceremony_master: get_from_seed::<AccountId>("Alice"),
         }),
