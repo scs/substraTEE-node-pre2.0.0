@@ -34,7 +34,7 @@ pub trait Trait: system::Trait + balances::Trait {
 	type Signature: Verify<Signer = Self::AccountId> + Member + Decode + Encode;	
 }
 
-const SINGLE_MEETUP_INDEX: u64 = 42;
+const SINGLE_MEETUP_INDEX: u64 = 1;
 
 pub type CeremonyIndexType = u32;
 pub type ParticipantIndexType = u64;
@@ -73,23 +73,28 @@ pub struct ClaimOfAttendance<AccountId> {
 decl_storage! {
 	trait Store for Module<T: Trait> as EncointerCeremonies {
 		// everyone who registered for a ceremony
+		// caution: index starts with 1, not 0! (because null and 0 is the same for state storage)
 		ParticipantRegistry get(participant_registry): double_map CeremonyIndexType, blake2_256(ParticipantIndexType) => T::AccountId;
 		ParticipantIndex get(participant_index): double_map CeremonyIndexType, blake2_256(T::AccountId) => ParticipantIndexType;
 		ParticipantCount get(participant_count): ParticipantIndexType;
 
 		// all meetups for each ceremony mapping to a vec of participants
+		// caution: index starts with 1, not 0! (because null and 0 is the same for state storage)
 		MeetupRegistry get(meetup_registry): double_map CeremonyIndexType, blake2_256(MeetupIndexType) => Vec<T::AccountId>;
 		MeetupIndex get(meetup_index): double_map CeremonyIndexType, blake2_256(T::AccountId) => MeetupIndexType;
 		MeetupCount get(meetup_count): MeetupIndexType;
 
 		// collect fellow meetup participants accounts who witnessed key account
+		// caution: index starts with 1, not 0! (because null and 0 is the same for state storage)
 		WitnessRegistry get(witness_registry): double_map CeremonyIndexType, blake2_256(WitnessIndexType) => Vec<T::AccountId>;
 		WitnessIndex get(witness_index): double_map CeremonyIndexType, blake2_256(T::AccountId) => WitnessIndexType;
 		WitnessCount get(witness_count): WitnessIndexType;
 		// how many peers does each participants observe at their meetup
 		MeetupParticipantCountVote get(meetup_participant_count_vote): double_map CeremonyIndexType, blake2_256(T::AccountId) => u32;
 
-		CurrentCeremonyIndex get(current_ceremony_index): CeremonyIndexType;
+		// caution: index starts with 1, not 0! (because null and 0 is the same for state storage)
+		CurrentCeremonyIndex get(current_ceremony_index) config(): CeremonyIndexType;
+		
 		LastCeremonyBlock get(last_ceremony_block): T::BlockNumber;
 		CurrentPhase get(current_phase): CeremonyPhaseType = CeremonyPhaseType::REGISTERING;
 
@@ -149,9 +154,9 @@ decl_module! {
 			
 			let new_count = count.checked_add(1).
             	ok_or("[EncointerCeremonies]: Overflow adding new participant to registry")?;
-
-			<ParticipantRegistry<T>>::insert(&cindex, &count, &sender);
-			<ParticipantIndex<T>>::insert(&cindex, &sender, &count);
+			
+			<ParticipantRegistry<T>>::insert(&cindex, &new_count, &sender);
+			<ParticipantIndex<T>>::insert(&cindex, &sender, &new_count);
 			<ParticipantCount>::put(new_count);
 
 			Ok(())
@@ -196,7 +201,7 @@ decl_module! {
 			}
 
 			let count = <WitnessCount>::get();
-			let mut idx = count;
+			let mut idx = count+1;
 
 			if <WitnessIndex<T>>::exists(&cindex, &sender) {
 				idx = <WitnessIndex<T>>::get(&cindex, &sender);
@@ -245,9 +250,9 @@ impl<T: Trait> Module<T> {
 		let pcount = <ParticipantCount>::get();		
 		let mut meetup = vec!();
 		
-		for p in 0..min(pcount, 11) {
+		for p in 1..min(pcount+1, 12+1) {
 			let participant = <ParticipantRegistry<T>>::get(&cindex, &p);
-			meetup.insert(p as usize, participant.clone());
+			meetup.insert(meetup.len(), participant.clone());
 			<MeetupIndex<T>>::insert(&cindex, &participant, &SINGLE_MEETUP_INDEX);
 		}
 		<MeetupRegistry<T>>::insert(&cindex, &SINGLE_MEETUP_INDEX, &meetup);
@@ -458,6 +463,7 @@ mod tests {
 			vesting: vec![],
 		}.assimilate_storage(&mut t).unwrap();		
 		encointer_ceremonies::GenesisConfig::<Test> {
+			current_ceremony_index: 1,
 			ceremony_reward: REWARD,
 			ceremony_master: AccountKeyring::Alice.public().into(),
 		}.assimilate_storage(&mut t).unwrap();		
@@ -469,14 +475,14 @@ mod tests {
 		with_externalities(&mut new_test_ext(), || {
 			let master = AccountId::from(AccountKeyring::Alice);
 			assert_eq!(EncointerCeremonies::current_phase(), CeremonyPhaseType::REGISTERING);
-			assert_eq!(EncointerCeremonies::current_ceremony_index(), 0);
+			assert_eq!(EncointerCeremonies::current_ceremony_index(), 1);
 			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			assert_eq!(EncointerCeremonies::current_phase(), CeremonyPhaseType::ASSIGNING);
 			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			assert_eq!(EncointerCeremonies::current_phase(), CeremonyPhaseType::WITNESSING);
 			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			assert_eq!(EncointerCeremonies::current_phase(), CeremonyPhaseType::REGISTERING);
-			assert_eq!(EncointerCeremonies::current_ceremony_index(), 1);						
+			assert_eq!(EncointerCeremonies::current_ceremony_index(), 2);						
 		});
 	}
 
@@ -491,9 +497,9 @@ mod tests {
 			assert_eq!(EncointerCeremonies::participant_count(), 1);
 			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(bob.clone())));
 			assert_eq!(EncointerCeremonies::participant_count(), 2);
-			assert_eq!(EncointerCeremonies::participant_index(&cindex, &bob), 1);
-			assert_eq!(EncointerCeremonies::participant_registry(&cindex, &0), alice);
-			assert_eq!(EncointerCeremonies::participant_registry(&cindex, &1), bob);
+			assert_eq!(EncointerCeremonies::participant_index(&cindex, &bob), 2);
+			assert_eq!(EncointerCeremonies::participant_registry(&cindex, &1), alice);
+			assert_eq!(EncointerCeremonies::participant_registry(&cindex, &2), bob);
 		});
 	}
 
@@ -513,19 +519,19 @@ mod tests {
 			let alice = AccountId::from(AccountKeyring::Alice);
 			let cindex = EncointerCeremonies::current_ceremony_index();
 			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(alice.clone())));
-			assert_eq!(EncointerCeremonies::participant_registry(&cindex, &0), alice);
+			assert_eq!(EncointerCeremonies::participant_registry(&cindex, &1), alice);
 			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			// now assigning
-			assert_eq!(EncointerCeremonies::participant_registry(&cindex, &0), alice);
+			assert_eq!(EncointerCeremonies::participant_registry(&cindex, &1), alice);
 			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			// now witnessing
-			assert_eq!(EncointerCeremonies::participant_registry(&cindex, &0), alice);
+			assert_eq!(EncointerCeremonies::participant_registry(&cindex, &1), alice);
 			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			// now again registering
 			let new_cindex = EncointerCeremonies::current_ceremony_index();
 			assert_eq!(new_cindex, cindex+1);
 			assert_eq!(EncointerCeremonies::participant_count(), 0);
-			assert_eq!(EncointerCeremonies::participant_registry(&cindex, &0), AccountId::default());
+			assert_eq!(EncointerCeremonies::participant_registry(&cindex, &1), AccountId::default());
 			assert_eq!(EncointerCeremonies::participant_index(&cindex, &alice), NONE);
 		});
 	}
@@ -548,10 +554,11 @@ mod tests {
 			let alice = AccountId::from(AccountKeyring::Alice);
 			let bob = AccountId::from(AccountKeyring::Bob);
 			let ferdie = AccountId::from(AccountKeyring::Ferdie);
-			let cindex = 0;
+			let cindex = EncointerCeremonies::current_ceremony_index();
 			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(alice.clone())));
 			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(bob.clone())));
 			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(ferdie.clone())));
+			assert_eq!(EncointerCeremonies::participant_count(), 3);
 			//assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			assert_ok!(EncointerCeremonies::assign_meetups());
 			assert_eq!(EncointerCeremonies::meetup_count(), 1);
@@ -572,7 +579,7 @@ mod tests {
 		with_externalities(&mut new_test_ext(), || {
 			let master = AccountId::from(AccountKeyring::Alice);
 			let alice = AccountId::from(AccountKeyring::Alice);
-			let cindex = 0;
+			let cindex = EncointerCeremonies::current_ceremony_index();
 			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(alice.clone())));
 			assert_eq!(EncointerCeremonies::meetup_index(&cindex, &alice), NONE);
 			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
@@ -593,7 +600,7 @@ mod tests {
 
 			let claim = ClaimOfAttendance {
 				claimant_public: claimant.into(),
-				ceremony_index: 0,
+				ceremony_index: 1,
 				meetup_index: SINGLE_MEETUP_INDEX,
 				number_of_participants_confirmed: 3,
 			};
@@ -625,7 +632,7 @@ mod tests {
 			let alice = AccountKeyring::Alice;
 			let bob = AccountKeyring::Bob;
 			let ferdie = AccountKeyring::Ferdie;
-			let cindex = 0;
+			let cindex = EncointerCeremonies::current_ceremony_index();
 			register_alice_bob_ferdie();
 			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
@@ -636,8 +643,8 @@ mod tests {
 			gets_witnessed_by(bob.into(), vec!(alice,ferdie),3);
 
 			assert_eq!(EncointerCeremonies::witness_count(), 2);
-			assert_eq!(EncointerCeremonies::witness_index(&cindex, &bob.into()), 1);
-			let wit_vec = EncointerCeremonies::witness_registry(&cindex, &1);
+			assert_eq!(EncointerCeremonies::witness_index(&cindex, &bob.into()), 2);
+			let wit_vec = EncointerCeremonies::witness_registry(&cindex, &2);
 			assert!(wit_vec.len() == 2);
 			assert!(wit_vec.contains(&alice.public()));
 			assert!(wit_vec.contains(&ferdie.public()));
@@ -654,14 +661,14 @@ mod tests {
 			let master = AccountId::from(AccountKeyring::Alice);
 			let alice = AccountKeyring::Alice;
 			let bob = AccountKeyring::Bob;
-			let cindex = 0;
+			let cindex = EncointerCeremonies::current_ceremony_index();
 			register_alice_bob_ferdie();
 			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			// WITNESSING
 			gets_witnessed_by(alice.into(), vec!(bob,alice),3);
 			assert_eq!(EncointerCeremonies::witness_count(), 1);	
-			let wit_vec = EncointerCeremonies::witness_registry(&cindex, &0);
+			let wit_vec = EncointerCeremonies::witness_registry(&cindex, &1);
 			assert!(wit_vec.contains(&alice.public()) == false);
 			assert!(wit_vec.len() == 1);
 
@@ -675,7 +682,7 @@ mod tests {
 			let alice = AccountKeyring::Alice;
 			let ferdie = AccountKeyring::Ferdie;
 			let eve = AccountKeyring::Eve;
-			let cindex = 0;
+			let cindex = EncointerCeremonies::current_ceremony_index();
 			register_alice_bob_ferdie();
 			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
@@ -698,14 +705,14 @@ mod tests {
 			let alice = AccountKeyring::Alice;
 			let bob = AccountKeyring::Bob;
 			let eve = AccountKeyring::Eve;
-			let cindex = 0;
+			let cindex = EncointerCeremonies::current_ceremony_index();
 			register_alice_bob_ferdie();
 			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			// WITNESSING
 			gets_witnessed_by(alice.into(), vec!(bob, eve), 3);
 			assert_eq!(EncointerCeremonies::witness_count(), 1);	
-			let wit_vec = EncointerCeremonies::witness_registry(&cindex, &0);
+			let wit_vec = EncointerCeremonies::witness_registry(&cindex, &1);
 			assert!(wit_vec.contains(&eve.public()) == false);
 			assert!(wit_vec.len() == 1);			
 		});
@@ -718,7 +725,7 @@ mod tests {
 			let alice = AccountKeyring::Alice;
 			let bob = AccountKeyring::Bob;
 			let ferdie = AccountKeyring::Ferdie;
-			let cindex = 0;
+			let cindex = EncointerCeremonies::current_ceremony_index();
 			register_alice_bob_ferdie();
 			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
@@ -727,7 +734,7 @@ mod tests {
 			alice_witnesses.insert(0, meetup_claim_sign(alice.into(), bob.clone(), 3));
 			let claim = ClaimOfAttendance {
 				claimant_public: alice.into(),
-				ceremony_index: 0,
+				ceremony_index: 1,
 				// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 				meetup_index: SINGLE_MEETUP_INDEX + 99,
 				number_of_participants_confirmed: 3,
@@ -742,7 +749,7 @@ mod tests {
 			assert_ok!(EncointerCeremonies::register_witnesses(
 				Origin::signed(alice.into()),
 				alice_witnesses));
-			let wit_vec = EncointerCeremonies::witness_registry(&cindex, &0);
+			let wit_vec = EncointerCeremonies::witness_registry(&cindex, &1);
 			assert!(wit_vec.contains(&ferdie.public()) == false);
 			assert!(wit_vec.len() == 1);			
 		});
@@ -755,7 +762,7 @@ mod tests {
 			let alice = AccountKeyring::Alice;
 			let bob = AccountKeyring::Bob;
 			let ferdie = AccountKeyring::Ferdie;
-			let cindex = 0;
+			let cindex = EncointerCeremonies::current_ceremony_index();
 			register_alice_bob_ferdie();
 			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
 			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
@@ -779,7 +786,7 @@ mod tests {
 			assert_ok!(EncointerCeremonies::register_witnesses(
 				Origin::signed(alice.into()),
 				alice_witnesses));
-			let wit_vec = EncointerCeremonies::witness_registry(&cindex, &0);
+			let wit_vec = EncointerCeremonies::witness_registry(&cindex, &1);
 			assert!(wit_vec.contains(&ferdie.public()) == false);
 			assert!(wit_vec.len() == 1);			
 		});
@@ -788,7 +795,7 @@ mod tests {
 	fn meetup_claim_sign(claimant: AccountId, witness: AccountKeyring, n_participants: u32) -> TestWitness {
 			let claim = ClaimOfAttendance {
 				claimant_public: claimant.clone(),
-				ceremony_index: 0,
+				ceremony_index: 1,
 				meetup_index: SINGLE_MEETUP_INDEX,
 				number_of_participants_confirmed: n_participants,
 			};
@@ -833,7 +840,7 @@ mod tests {
 			let charlie = AccountKeyring::Charlie;
 			let dave = AccountKeyring::Dave;
 			let eve = AccountKeyring::Eve;
-			let cindex = 0;			
+			let cindex = EncointerCeremonies::current_ceremony_index();			
 			register_alice_bob_ferdie();
 			register_charlie_dave_eve();
 
@@ -877,7 +884,7 @@ mod tests {
 			let charlie = AccountKeyring::Charlie;
 			let dave = AccountKeyring::Dave;
 			let eve = AccountKeyring::Eve;
-			let cindex = 0;			
+			let cindex = EncointerCeremonies::current_ceremony_index();			
 			register_alice_bob_ferdie();
 			register_charlie_dave_eve();
 
