@@ -54,7 +54,7 @@ They can then register for daily rehearsal ceremonies in their region, eventuall
 
 ### Analyze Scalability with Pacific Bot-Ceremonies
 
-In order to simulate different scenarios of adoption we will create bot-clusters which will bootstrap a seed in the middle of the pacifc (to avoid any overlap with real ceremonies mentioned above)
+In order to simulate different scenarios of adoption we will create bot-clusters which will bootstrap a seed in the middle of the pacifc (to avoid any overlap with real ceremonies mentioned above). The agents in these clusters will participate at most ceremonies and emulate a vivid expanding population of users.
 
 ### Register Encointer-Worker
 
