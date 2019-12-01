@@ -2,6 +2,8 @@
 
 This document specifies a first testnet for encointer with the working title "Cantillon". 
 
+![Cantillon Testnet Architecture](./Cantillon-Testnet-Overview.svg)
+
 ## Key Differences with [Encointer Whitepaper](https://github.com/encointer/whitepaper)
 
   * no dPOET consensus. 
