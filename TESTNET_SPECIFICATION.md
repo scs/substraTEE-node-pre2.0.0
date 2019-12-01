@@ -37,5 +37,5 @@ NCTR tokens are issued as rewards to ceremony participants.
   * supply cap: 1M ERT
   * nominal inflation: none
   
-The native token of the encointer blockchain is Encointer Registry Token (ERT). Its sole purpose is to pay tx fees for testnet transactions. (The final encointer chain will not need this token as transaction fees will be proportionally paid in NCTR and spam-prevention will be done with POET)
+The native token of the encointer blockchain is Encointer Registry Token (ERT). Its sole purpose is to pay tx fees for testnet transactions. (The final encointer chain will not need this token as transaction fees will be proportionally paid in NCTR and spam-prevention will be done with POET. But as long as SubstraTEE works through indirect invocation, we need fees in native currency to prevent spam)
 
