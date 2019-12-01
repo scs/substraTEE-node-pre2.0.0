@@ -12,11 +12,14 @@ This document specifies a first testnet for encointer with the working title "Ca
   * no proportional fees. Classical per-transaction base fees will be applied
   * confidential state updates will be implemented with [SubstraTEE](https://github.com/scs/substraTEE)
   * no private smart contracts yet
-  * in addition to ceremonies happening every 41 days, there will be daily rehearsal ceremonies that allow to practise and demonstrate meetups
+  * ceremonies will happen daily at high sun instead of every 41 days.
   
 ## Validators
 
-The Cantillon testnet will be validated (centralized) by encointer.org
+The Cantillon testnet will be validated (centralized) by encointer.org in order to facilitate easy upgrades and focus on the essential features instead of security. 
+
+Cantillon is a parachain to Kusama, a decentralized root-of-trust.
+The Encointer mainnet is planned to become a parachain or parathread to Polkadot, even after implementing dPOET.
 
 ## Tokens
 
@@ -41,3 +44,22 @@ NCTR tokens are issued as rewards to ceremony participants.
   
 The native token of the encointer blockchain is Encointer Registry Token (ERT). Its sole purpose is to pay tx fees for testnet transactions. (The final encointer chain will not need this token as transaction fees will be proportionally paid in NCTR and spam-prevention will be done with POET. But as long as SubstraTEE works through indirect invocation, we need fees in native currency to prevent spam)
 
+## Usage Scenarios
+
+### Try Real Ceremonies
+
+Users can download the encointer android app from the play store and get ERT from a faucet to get started.
+
+They can then register for daily rehearsal ceremonies in their region, eventually bootstrapping their own seed. 
+
+### Analyze Scalability with Pacific Bot-Ceremonies
+
+In order to simulate different scenarios of adoption we will create bot-clusters which will bootstrap a seed in the middle of the pacifc (to avoid any overlap with real ceremonies mentioned above)
+
+### Register Encointer-Worker
+
+Users who wish to run a worker can register their Intel SGX HW and run a worker in *SGX debug mode*. At a certain stage we may require workers to run in *SGX production mode* (which requires a commercial license with Intel)
+
+## Why naming the testnet after Richard Cantillon?
+Richard Cantillon was an economist often cited for the [Cantillon Effect](https://mises.org/library/5-cantillon-effects), 
+which describes the effect of money issuance on inequality. The first recipients of newly issued money (nominal inflation) experience an increase in wealth, while those who do not receive it experience a decrease in wealth.
