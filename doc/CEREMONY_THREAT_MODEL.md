@@ -239,13 +239,8 @@ As long as the threat model assumptions are held, we can find a set of rules tha
 
 The probability that you as a participant experience a meetup with evil majority follows the poisson cumulative distribution function:
 
-Given the overall proportion of malicious actors of *lambda*=5%, The probability that you will suffer from malicious behaviour depending on the number of participants in your meetup *n* is
+Given the overall proportion of malicious actors , the probability that you (being an honest actor) will suffer from malicious behaviour at one specific meetup depending on the number of participants in your meetup *n* is
 
-```matlab
-lambda = 0.05
-n = 3
-P = exp(-lambda)*sum(lambda.^[ceil(n/2):n]./factorial([ceil(n/2):n]))
-```
-
+[code](./probability_of_malicious_majority.m)
 ![](./probability_of_malicious_majority.svg)
 
