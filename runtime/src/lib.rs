@@ -243,7 +243,7 @@ impl sudo::Trait for Runtime {
 
 impl encointer_ceremonies::Trait for Runtime {
 	type Event = Event;
-	type Signature = Signature;
+	type Signature = MultiSignature;
 }
 
 construct_runtime!(
@@ -262,6 +262,7 @@ construct_runtime!(
 		Sudo: sudo,
 //        SubstraTEERegistry: substratee_registry::{Module, Call, Storage, Event<T>},
 		EncointerCeremonies: encointer_ceremonies::{Module, Call, Storage, Config<T>, Event<T>},
+		RandomnessCollectiveFlip: randomness_collective_flip::{Module, Call, Storage},
 	}
 );
 

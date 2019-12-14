@@ -21,8 +21,8 @@ use system::{ensure_signed, ensure_root};
 use rstd::prelude::*;
 use rstd::cmp::min;
 
-use runtime_primitives::traits::{Verify, Member, CheckedAdd};
-use runtime_io::print;
+use sr_primitives::traits::{Verify, Member, CheckedAdd};
+use runtime_io::misc::print_utf8;
 
 use codec::{Codec, Encode, Decode};
 
@@ -135,7 +135,7 @@ decl_module! {
 
 			<CurrentPhase>::put(next_phase);
 			Self::deposit_event(RawEvent::PhaseChangedTo(next_phase));
-			print("phase changed");
+			print_utf8("phase changed");
 			Ok(())
 		}
 
@@ -180,16 +180,16 @@ decl_module! {
 				let witness = &witnesses[w];
 				let witness_account = &witnesses[w].public;
 				if meetup_participants.contains(witness_account) == false { 
-					print("ignoring witness that isn't a meetup participant");
+					print_utf8("ignoring witness that isn't a meetup participant");
 					continue };
 				if witness.claim.ceremony_index != cindex { 
-					print("ignoring claim with wrong ceremony index");
+					print_utf8("ignoring claim with wrong ceremony index");
 					continue };
 				if witness.claim.meetup_index != meetup_index { 
-					print("ignoring claim with wrong meetup index");
+					print_utf8("ignoring claim with wrong meetup index");
 					continue };
 				if Self::verify_witness_signature(witness.clone()).is_err() { 
-					print("ignoring witness with bad signature");
+					print_utf8("ignoring witness with bad signature");
 					continue };
 				// witness is legit. insert it!
 				verified_witness_accounts.insert(0, witness_account.clone());
@@ -285,19 +285,19 @@ impl<T: Trait> Module<T> {
 			let (n_confirmed, n_honest_participants) = match Self::ballot_meetup_n_votes(SINGLE_MEETUP_INDEX) {
 				Some(nn) => nn,
 				_ => {
-					print("skipping meetup because votes for num of participants are not dependable");
+					print_utf8("skipping meetup because votes for num of participants are not dependable");
 					continue;
 				},
 			};
 			let mut meetup_participants = Self::meetup_registry(&cindex, &SINGLE_MEETUP_INDEX);
 			for p in meetup_participants {
 				if Self::meetup_participant_count_vote(&cindex, &p) != n_confirmed {
-					print("skipped participant because of wrong participant count vote");
+					print_utf8("skipped participant because of wrong participant count vote");
 					continue; }
 				let witnesses = Self::witness_registry(&cindex, 
 					&Self::witness_index(&cindex, &p));
 				if witnesses.len() < (n_honest_participants - 1) as usize || witnesses.is_empty() {
-					print("skipped participant because of too few witnesses");
+					print_utf8("skipped participant because of too few witnesses");
 					continue; }
 				let mut has_witnessed = 0u32;
 				for w in witnesses {
@@ -308,11 +308,11 @@ impl<T: Trait> Module<T> {
 					}
 				}
 				if has_witnessed < (n_honest_participants - 1) {
-					print("skipped participant because didn't testify for honest peers");
+					print_utf8("skipped participant because didn't testify for honest peers");
 					continue; }					
 				// TODO: check that p also signed others
 				// participant merits reward
-				print("participant merits reward");
+				print_utf8("participant merits reward");
 				let old_balance = <balances::Module<T>>::free_balance(&p);
 				let new_balance = old_balance.checked_add(&reward)
 					.expect("Balance should never overflow");
