@@ -31,7 +31,7 @@ use substrate_api_client::{
     Api, node_metadata,
     compose_extrinsic,
     extrinsic, 
-    extrinsic::xt_primitives::{AccountId, UncheckedExtrinsicV3, GenericAddress},
+    extrinsic::xt_primitives::{UncheckedExtrinsicV4, GenericAddress},
     rpc::json_req,
     utils::{storage_key_hash, hexstr_to_hash, hexstr_to_u256, hexstr_to_u64, hexstr_to_vec},
 };
@@ -42,7 +42,7 @@ use primitives::{
 };
 use bip39::{Mnemonic, Language, MnemonicType};
 
-use encointer_node_runtime::{Event, Call, EncointerCeremoniesCall, BalancesCall, 
+use encointer_node_runtime::{AccountId, Event, Call, EncointerCeremoniesCall, BalancesCall, 
     Signature, Hash,
     encointer_ceremonies::{ClaimOfAttendance, Witness, CeremonyIndexType,
         MeetupIndexType, ParticipantIndexType, WitnessIndexType}
@@ -144,8 +144,8 @@ fn main() {
         let to = get_accountid_from_str(arg_to);
         info!("from ss58 is {}", from.to_ss58check());
         info!("to ss58 is {}", to.to_ss58check());
-        let _api = api.clone().set_signer(AccountKeyring::from_public(&from).unwrap().pair());
-        let xt = _api.balance_transfer(GenericAddress::from(to.0.clone()), amount);
+        let _api = api.clone().set_signer(AccountKeyring::from_account_id(&from).unwrap().pair());
+        let xt = _api.balance_transfer(GenericAddress::from(to.clone()), amount);
         let tx_hash = _api.send_extrinsic(xt.hex_encode()).unwrap();
         println!("[+] Transaction got finalized. Hash: {:?}\n", tx_hash);
         let result = _api.get_free_balance(&to);
@@ -155,7 +155,7 @@ fn main() {
     if let Some(_matches) = matches.subcommand_matches("next_phase") {
         let _api = api.clone().set_signer(AccountKeyring::Alice.pair());
 
-        let xt: UncheckedExtrinsicV3<_, sr25519::Pair>  = compose_extrinsic!(
+        let xt: UncheckedExtrinsicV4<_>  = compose_extrinsic!(
             _api.clone(),
             "EncointerCeremonies",
             "next_phase"
@@ -173,7 +173,7 @@ fn main() {
         // FIXME: signer must be participant's Pair. now will always be Alice
         let _api = api.clone().set_signer(AccountKeyring::Alice.pair());
 
-        let xt: UncheckedExtrinsicV3<_, sr25519::Pair>  = compose_extrinsic!(
+        let xt: UncheckedExtrinsicV4<_>  = compose_extrinsic!(
             _api.clone(),
             "EncointerCeremonies",
             "register_participant"

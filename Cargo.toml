@@ -9,6 +9,7 @@ edition = "2018"
 members = [
     "host_calls",
     "runtime",
+    "client"
 ]
 
 [[bin]]

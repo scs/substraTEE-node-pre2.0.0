@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-substrate-api-client = { git = "https://github.com/scs/substrate-api-client.git", branch = "brenzi-fix-double-map"}
+substrate-api-client = { git = "https://github.com/scs/substrate-api-client.git", tag = "api-M1.5"}
 log = "0.4"
 env_logger = "0.6"
 hex = "0.3.2"
@@ -16,7 +16,7 @@ substrate-bip39 = "0.3.1"
 tiny-bip39 = "0.6.2"
 serde_json      = { version = "1.0"}
 clap            = { version = "2.33", features = [ "yaml" ] }
-primitive-types = { version = "0.5", default-features = false, features = ["codec"] }
+primitive-types = { version = "0.6.1", default-features = false, features = ["codec"] }
 
 [dependencies.serde]
 features = ["derive"]
@@ -31,39 +31,33 @@ version = "1.0.0"
 
 [dependencies.primitives]
 git = 'https://github.com/paritytech/substrate'
-rev = "9b08e7ff938a45dbec7fcdb854063202e2b0cb48"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
 package = "substrate-primitives"
 
 [dependencies.keystore]
 git = 'https://github.com/paritytech/substrate'
-rev = "9b08e7ff938a45dbec7fcdb854063202e2b0cb48"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
 package = "substrate-keystore"
 
 [dependencies.balances]
 git = 'https://github.com/paritytech/substrate'
-rev = "9b08e7ff938a45dbec7fcdb854063202e2b0cb48"
-package = "srml-balances"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+package = "pallet-balances"
 default-features=false
 
 [dependencies.system]
 git = 'https://github.com/paritytech/substrate'
-rev = "9b08e7ff938a45dbec7fcdb854063202e2b0cb48"
-package = "srml-system"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+package = "palette-system"
 default-features=false
 
 [dependencies.encointer-node-runtime]
-git = 'https://github.com/encointer/encointer-node'
-branch = "PoC1"
-package = "encointer-node-runtime"
+path = '../runtime'
 
 [dependencies.keyring]
 git = 'https://github.com/paritytech/substrate'
-rev = "9b08e7ff938a45dbec7fcdb854063202e2b0cb48"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
 package = "substrate-keyring"
-
-
-[patch."https://github.com/paritytech/substrate"]
-substrate-primitives = { package = "substrate-primitives", git = "https://github.com/scs/substrate-api-client", branch = "brenzi-fix-double-map", default-features = false }
 
 [patch.crates-io]
 ed25519-dalek = { git = "https://github.com/scs/ed25519-dalek.git", branch = "no_std_sgx"}
