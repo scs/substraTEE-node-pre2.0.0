@@ -5,7 +5,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 use substrate_client::LongestChain;
-use substratee_node_runtime::{self, GenesisConfig, opaque::Block, RuntimeApi};
+use encointer_node_runtime::{self, GenesisConfig, opaque::Block, RuntimeApi};
 use host_calls::runtime_interfaces;
 use substrate_service::{error::{Error as ServiceError}, AbstractService, Configuration, ServiceBuilder};
 use transaction_pool::{self, txpool::{Pool as TransactionPool}};
@@ -16,7 +16,6 @@ pub use substrate_executor::NativeExecutor;
 use aura_primitives::sr25519::{AuthorityPair as AuraPair};
 use grandpa::{self, FinalityProofProvider as GrandpaFinalityProofProvider};
 use basic_authorship;
-use encointer_node_runtime::{self, opaque::Block, GenesisConfig, RuntimeApi};
 
 // Our native executor instance.
 native_executor_instance!(

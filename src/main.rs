@@ -21,5 +21,5 @@ fn main() {
         support_url: "encointer.org",
     };
 
-	cli::run(std::env::args(), cli::Exit, version)
+	cli::run(std::env::args(), cli::Exit, version);
 }
