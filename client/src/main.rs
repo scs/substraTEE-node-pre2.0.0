@@ -47,6 +47,7 @@ use encointer_node_runtime::{AccountId, Event, Call, EncointerCeremoniesCall, Ba
     encointer_ceremonies::{ClaimOfAttendance, Witness, CeremonyIndexType,
         MeetupIndexType, ParticipantIndexType, WitnessIndexType}
 }; 
+use sr_primitives::traits::{Verify, IdentifyAccount};
 //use primitive_types::U256;
 use serde_json;
 use log::{info, debug, trace, warn};
@@ -54,6 +55,8 @@ use log::Level;
 use clap::App;
 use std::sync::mpsc::channel;
 use std::collections::HashMap;
+
+type AccountPublic = <Signature as Verify>::Signer;
 
 fn main() {
     env_logger::init();
@@ -233,8 +236,10 @@ fn main() {
 
 fn get_accountid_from_str(account: &str) -> AccountId {
     match &account[..2] {
-        "//" => sr25519::Pair::from_string(account, None).unwrap().public().into(),
-        _ => sr25519::Public::from_ss58check(account).unwrap().into(),
+        "//" => AccountPublic::from(sr25519::Pair::from_string(account, None)
+            .unwrap().public()).into_account(),
+        _ => AccountPublic::from(sr25519::Public::from_ss58check(account)
+            .unwrap()).into_account(),
     }
 }
 
