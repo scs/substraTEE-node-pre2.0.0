@@ -357,13 +357,13 @@ mod tests {
 	use super::*;
 	use crate::encointer_ceremonies;
 	use std::{collections::HashSet, cell::RefCell};
-	use runtime_io::with_externalities;
+	use externalities::set_and_run_with_externalities;
 	use primitives::{H256, Blake2Hasher};
 	use support::{impl_outer_origin, assert_ok, parameter_types};
 	use support::traits::{Currency, Get, FindAuthor, LockIdentifier};
-	use runtime_primitives::{traits::{BlakeTwo256, IdentityLookup, Block as BlockT}, testing::Header};
-	use runtime_primitives::weights::Weight;
-	use runtime_primitives::Perbill;
+	use sr_primitives::{traits::{BlakeTwo256, IdentityLookup, Block as BlockT}, testing::Header};
+	use sr_primitives::weights::Weight;
+	use sr_primitives::Perbill;
 	use node_primitives::{AccountId, Signature};
 		
 	use test_client::{self, AccountKeyring};
@@ -386,8 +386,8 @@ mod tests {
 		}
 	}
 
-	pub type Block = runtime_primitives::generic::Block<Header, UncheckedExtrinsic>;
-	pub type UncheckedExtrinsic = runtime_primitives::generic::UncheckedExtrinsic<u32, u64, Call, ()>;
+	pub type Block = sr_primitives::generic::Block<Header, UncheckedExtrinsic>;
+	pub type UncheckedExtrinsic = sr_primitives::generic::UncheckedExtrinsic<u32, u64, Call, ()>;
 	// For testing the module, we construct most of a mock runtime. This means
 	// first constructing a configuration type (`Test`) which `impl`s each of the
 	// configuration traits of modules we want to use.
@@ -408,7 +408,6 @@ mod tests {
 		type AccountId = AccountId;
 		type Lookup = IdentityLookup<Self::AccountId>;
 		type Header = Header;
-		type WeightMultiplierUpdate = ();
 		type Event = ();
 		type BlockHashCount = BlockHashCount;
 		type MaximumBlockWeight = MaximumBlockWeight;
@@ -427,15 +426,11 @@ mod tests {
 		type OnFreeBalanceZero = ();
 		type OnNewAccount = ();
 		type Event = ();
-		type TransactionPayment = ();
 		type TransferPayment = ();
 		type DustRemoval = ();
 		type ExistentialDeposit = ExistentialDeposit;
 		type TransferFee = TransferFee;
 		type CreationFee = CreationFee;
-		type TransactionBaseFee = TransactionBaseFee;
-		type TransactionByteFee = TransactionByteFee;
-		type WeightToFee = ();
 	}
 
 	impl Trait for Test {
@@ -458,7 +453,7 @@ mod tests {
 
 	// This function basically just builds a genesis storage key/value store according to
 	// our desired mockup.
-	fn new_test_ext() -> runtime_io::TestExternalities<Blake2Hasher> {
+	fn new_test_ext() -> runtime_io::TestExternalities {
 		let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
 		balances::GenesisConfig::<Test> {
 			balances: vec![],
@@ -474,7 +469,7 @@ mod tests {
 
 	#[test]
 	fn ceremony_phase_statemachine_works() {
-		with_externalities(&mut new_test_ext(), || {
+		set_and_run_with_externalities(&mut new_test_ext(), || {
 			let master = AccountId::from(AccountKeyring::Alice);
 			assert_eq!(EncointerCeremonies::current_phase(), CeremonyPhaseType::REGISTERING);
 			assert_eq!(EncointerCeremonies::current_ceremony_index(), 1);
@@ -490,7 +485,7 @@ mod tests {
 
 	#[test]
 	fn registering_participant_works() {
-		with_externalities(&mut new_test_ext(), || {
+		set_and_run_with_externalities(&mut new_test_ext(), || {
 			let alice = AccountId::from(AccountKeyring::Alice);
 			let bob = AccountId::from(AccountKeyring::Bob);
 			let cindex = EncointerCeremonies::current_ceremony_index();
@@ -507,7 +502,7 @@ mod tests {
 
 	#[test]
 	fn registering_participant_twice_fails() {
-		with_externalities(&mut new_test_ext(), || {
+		set_and_run_with_externalities(&mut new_test_ext(), || {
 			let alice = AccountId::from(AccountKeyring::Alice);
 			assert_ok!(EncointerCeremonies::register_participant(Origin::signed(alice.clone())));
 			assert!(EncointerCeremonies::register_participant(Origin::signed(alice.clone())).is_err());
@@ -516,7 +511,7 @@ mod tests {
 
 	#[test]
 	fn ceremony_index_and_purging_registry_works() {
-		with_externalities(&mut new_test_ext(), || {
+		set_and_run_with_externalities(&mut new_test_ext(), || {
 			let master = AccountId::from(AccountKeyring::Alice);
 			let alice = AccountId::from(AccountKeyring::Alice);
 			let cindex = EncointerCeremonies::current_ceremony_index();
@@ -540,7 +535,7 @@ mod tests {
 
 	#[test]
 	fn registering_participant_in_wrong_phase_fails() {
-		with_externalities(&mut new_test_ext(), || {
+		set_and_run_with_externalities(&mut new_test_ext(), || {
 			let master = AccountId::from(AccountKeyring::Alice);
 			let alice = AccountId::from(AccountKeyring::Alice);
 			assert_ok!(EncointerCeremonies::next_phase(Origin::signed(master.clone())));
@@ -551,7 +546,7 @@ mod tests {
 
 	#[test]
 	fn assigning_meetup_works() {
-		with_externalities(&mut new_test_ext(), || {
+		set_and_run_with_externalities(&mut new_test_ext(), || {
 			let master = AccountId::from(AccountKeyring::Alice);
 			let alice = AccountId::from(AccountKeyring::Alice);
 			let bob = AccountId::from(AccountKeyring::Bob);
@@ -578,7 +573,7 @@ mod tests {
 	}
 	#[test]
 	fn assigning_meetup_at_phase_change_and_purge_works() {
-		with_externalities(&mut new_test_ext(), || {
+		set_and_run_with_externalities(&mut new_test_ext(), || {
 			let master = AccountId::from(AccountKeyring::Alice);
 			let alice = AccountId::from(AccountKeyring::Alice);
 			let cindex = EncointerCeremonies::current_ceremony_index();
@@ -594,7 +589,7 @@ mod tests {
 
 	#[test]
 	fn verify_witness_signatue_works() {
-		with_externalities(&mut new_test_ext(), || {
+		set_and_run_with_externalities(&mut new_test_ext(), || {
 			// claimant			
 			let claimant = AccountKeyring::Alice;
 			// witness
@@ -629,7 +624,7 @@ mod tests {
 
 	#[test]
 	fn register_witnesses_works() {
-		with_externalities(&mut new_test_ext(), || {
+		set_and_run_with_externalities(&mut new_test_ext(), || {
 			let master = AccountId::from(AccountKeyring::Alice);
 			let alice = AccountKeyring::Alice;
 			let bob = AccountKeyring::Bob;
@@ -659,7 +654,7 @@ mod tests {
 
 	#[test]
 	fn register_witnesses_for_non_participant_fails_silently() {
-		with_externalities(&mut new_test_ext(), || {
+		set_and_run_with_externalities(&mut new_test_ext(), || {
 			let master = AccountId::from(AccountKeyring::Alice);
 			let alice = AccountKeyring::Alice;
 			let bob = AccountKeyring::Bob;
@@ -679,7 +674,7 @@ mod tests {
 
 	#[test]
 	fn register_witnesses_for_non_participant_fails() {
-		with_externalities(&mut new_test_ext(), || {
+		set_and_run_with_externalities(&mut new_test_ext(), || {
 			let master = AccountId::from(AccountKeyring::Alice);
 			let alice = AccountKeyring::Alice;
 			let ferdie = AccountKeyring::Ferdie;
@@ -702,7 +697,7 @@ mod tests {
 
 	#[test]
 	fn register_witnesses_with_non_participant_fails_silently() {
-		with_externalities(&mut new_test_ext(), || {
+		set_and_run_with_externalities(&mut new_test_ext(), || {
 			let master = AccountId::from(AccountKeyring::Alice);
 			let alice = AccountKeyring::Alice;
 			let bob = AccountKeyring::Bob;
@@ -722,7 +717,7 @@ mod tests {
 
 	#[test]
 	fn register_witnesses_with_wrong_meetup_index_fails() {
-		with_externalities(&mut new_test_ext(), || {
+		set_and_run_with_externalities(&mut new_test_ext(), || {
 			let master = AccountId::from(AccountKeyring::Alice);
 			let alice = AccountKeyring::Alice;
 			let bob = AccountKeyring::Bob;
@@ -759,7 +754,7 @@ mod tests {
 
 	#[test]
 	fn register_witnesses_with_wrong_ceremony_index_fails() {
-		with_externalities(&mut new_test_ext(), || {
+		set_and_run_with_externalities(&mut new_test_ext(), || {
 			let master = AccountId::from(AccountKeyring::Alice);
 			let alice = AccountKeyring::Alice;
 			let bob = AccountKeyring::Bob;
@@ -834,7 +829,7 @@ mod tests {
 
 	#[test]
 	fn ballot_meetup_n_votes_works() {
-		with_externalities(&mut new_test_ext(), || {
+		set_and_run_with_externalities(&mut new_test_ext(), || {
 			let master = AccountId::from(AccountKeyring::Alice);
 			let alice = AccountKeyring::Alice;
 			let bob = AccountKeyring::Bob;
@@ -878,7 +873,7 @@ mod tests {
 
 	#[test]
 	fn issue_reward_works() {
-		with_externalities(&mut new_test_ext(), || {
+		set_and_run_with_externalities(&mut new_test_ext(), || {
 			let master = AccountId::from(AccountKeyring::Alice);
 			let alice = AccountKeyring::Alice;
 			let bob = AccountKeyring::Bob;
