@@ -20,6 +20,7 @@ use rstd::prelude::*;
 use rstd::str;
 use runtime_io::misc::print_utf8;
 use host_calls::runtime_interfaces::verify_ra_report;
+use host_calls::SgxReport;
 use support::{decl_event, decl_module,
               decl_storage, dispatch::Result, ensure, StorageLinkedMap};
 use system::ensure_signed;
@@ -28,6 +29,9 @@ pub trait Trait: balances::Trait {
     type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 }
 
+const MAX_RA_REPORT_LEN: usize = 4096;
+const MAX_URL_LEN: usize = 256;
+const RA_SIGNER_ATTN_LEN: usize = 64;
 
 #[derive(Encode, Decode, Default, Copy, Clone, PartialEq)]
 #[cfg_attr(feature = "std", derive(Debug))]
@@ -68,15 +72,25 @@ decl_module! {
  		fn deposit_event() = default;
 
 		// the substraTEE-worker wants to register his enclave
- 		pub fn register_enclave(origin, ra_report: Vec<u8>, worker_url: Vec<u8>) -> Result {
+ 		pub fn register_enclave(origin, ra_report: Vec<u8>, ra_signer_attn: Vec<u32>, worker_url: Vec<u8>) -> Result {
 			let sender = ensure_signed(origin)?;
+            ensure!(ra_report.len() <= MAX_RA_REPORT_LEN, "RA report too long");
+            ensure!(ra_signer_attn.len() == RA_SIGNER_ATTN_LEN, "wrong RA signer attestation length");
+            ensure!(worker_url.len() <= MAX_URL_LEN, "URL too long");
 
-            if let None = verify_ra_report(&ra_report) {
-                return Err("Verifying RA report failed... returning")
+            match verify_ra_report(&ra_report, &ra_signer_attn, &sender.encode()) {
+                Some(rep) => {
+                    let report = SgxReport::decode(&mut &rep[..]).unwrap();
+                    // this is actually already implicitly tested by verify_ra_report
+                    //ensure!(sender == T::AccountId::from(report.pubkey), 
+                    //    "extrinsic must be signed by attested enclave key");
+                    Self::add_enclave(&sender, &worker_url)?;
+                    Self::deposit_event(RawEvent::AddedEnclave(sender, worker_url));
+                    Ok(())
+                                
+                }
+                None => Err("Verifying RA report failed... returning")
             }
-            Self::add_enclave(&sender, &worker_url)?;
-            Self::deposit_event(RawEvent::AddedEnclave(sender, worker_url));
- 			Ok(())
 		}
 
 		pub fn unregister_enclave(origin) -> Result {
@@ -260,7 +274,7 @@ mod tests {
     type Registry = super::Module<TestRuntime>;
     
     pub struct ExtBuilder;
-    
+
 	impl ExtBuilder {
 		pub fn build() -> runtime_io::TestExternalities {
 			let mut storage = system::GenesisConfig::default().build_storage::<TestRuntime>().unwrap();

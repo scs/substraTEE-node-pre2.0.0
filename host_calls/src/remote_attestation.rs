@@ -26,6 +26,10 @@ use itertools::Itertools;
 use log::*;
 use serde_json::Value;
 use sgx_types::*;
+use sgx_ucrypto::SgxEccHandle;
+
+use codec::{Decode, Encode};
+use super::SgxReport;
 
 type SignatureAlgorithms = &'static [&'static webpki::SignatureAlgorithm];
 
@@ -47,8 +51,9 @@ static SUPPORTED_SIG_ALGS: SignatureAlgorithms = &[
 pub const IAS_REPORT_CA: &[u8] = include_bytes!("../AttestationReportSigningCACert.pem");
 
 
-pub fn verify_mra_cert(cert_der: &[u8]) -> Result<(), &'static str> {
-    // Before we reach here, the runtime already verifed the cert is properly signed
+
+pub fn verify_mra_cert(cert_der: &[u8], xt_signer_attn: &[u32], xt_signer: &[u8]) -> Result<Vec<u8>, &'static str> {
+    // Before we reach here, the runtime already verifed the cert is properly signed by the extrinsic sender
     // Search for Public Key prime256v1 OID
     let prime256v1_oid = &[0x06, 0x08, 0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x03, 0x01, 0x07];
     let mut offset = match cert_der.windows(prime256v1_oid.len()).position(|window| window == prime256v1_oid) {
@@ -256,11 +261,28 @@ pub fn verify_mra_cert(cert_der: &[u8]) -> Result<(), &'static str> {
         if sgx_quote.report_body.report_data.d.to_vec() == pub_k.to_vec() {
             println!("Remote attestation of enclave successful!");
         }
+        
+        let ecc_handle = SgxEccHandle::new();
+        let _result = ecc_handle.open();
+
+        let mut ephemeral_pub = sgx_ec256_public_t::default();
+        // FIXME: should this be little-endian?
+        ephemeral_pub.gx.copy_from_slice(&pub_k[..31]);
+        ephemeral_pub.gy.copy_from_slice(&pub_k[32..]);
+
+        let mut signature = sgx_ec256_signature_t::default();
+        signature.x.copy_from_slice(&xt_signer_attn[..7]);
+        signature.y.copy_from_slice(&xt_signer_attn[8..]);
+
+        // TODO: error handling
+        if ecc_handle.ecdsa_verify_slice(&xt_signer, &ephemeral_pub, &signature) == Ok(false) {
+            return Err("wrong signature. Could not verify that the extrinsic signer is the enclave itself") 
+        }
+
+        Ok(SgxReport::default().encode())
     } else {
         return Err("Failed to fetch isvEnclaveQuoteBody from attestation report");
     }
-
-    Ok(())
 }
 
 #[cfg(test)]
