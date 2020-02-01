@@ -25,80 +25,91 @@ exit-future = "0.1.4"
 parking_lot = "0.9.0"
 codec = { package = "parity-scale-codec", version = "1.0.0" }
 trie-root = "0.15.2"
+structopt = "0.3.8"
 
-[dependencies.sr-io]
+[dependencies.sp-io]
 git = "https://github.com/paritytech/substrate"
-rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+rev = "1294685848c35114769fb4f766643f1b5bd1b516"
 
-[dependencies.substrate-cli]
+[dependencies.sc-cli]
 git = "https://github.com/paritytech/substrate"
-rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+rev = "1294685848c35114769fb4f766643f1b5bd1b516"
 
-[dependencies.primitives]
+[dependencies.sp-core]
 git = "https://github.com/paritytech/substrate"
-package = "substrate-primitives"
-rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+package = "sp-core"
+rev = "1294685848c35114769fb4f766643f1b5bd1b516"
 
-[dependencies.substrate-executor]
+[dependencies.sc-executor]
 git = "https://github.com/paritytech/substrate"
-rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+rev = "1294685848c35114769fb4f766643f1b5bd1b516"
 
-[dependencies.substrate-service]
+[dependencies.sc-service]
 git = "https://github.com/paritytech/substrate"
-rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+rev = "1294685848c35114769fb4f766643f1b5bd1b516"
 
-[dependencies.inherents]
+[dependencies.sp-inherents]
 git = "https://github.com/paritytech/substrate"
-package = "substrate-inherents"
-rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+package = "sp-inherents"
+rev = "1294685848c35114769fb4f766643f1b5bd1b516"
 
-[dependencies.transaction-pool]
+[dependencies.sp-transaction-pool]
 git = "https://github.com/paritytech/substrate"
-package = "substrate-transaction-pool"
-rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+package = "sp-transaction-pool"
+rev = "1294685848c35114769fb4f766643f1b5bd1b516"
 
-[dependencies.network]
+[dependencies.sc-transaction-pool]
 git = "https://github.com/paritytech/substrate"
-package = "substrate-network"
-rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+package = "sc-transaction-pool"
+rev = "1294685848c35114769fb4f766643f1b5bd1b516"
 
-[dependencies.aura]
+[dependencies.sc-network]
 git = "https://github.com/paritytech/substrate"
-package = "substrate-consensus-aura"
-rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+package = "sc-network"
+rev = "1294685848c35114769fb4f766643f1b5bd1b516"
 
-[dependencies.aura-primitives]
+[dependencies.sp-consensus-aura]
 git = "https://github.com/paritytech/substrate"
-package = "substrate-consensus-aura-primitives"
-rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+package = "sp-consensus-aura"
+rev = "1294685848c35114769fb4f766643f1b5bd1b516"
+
+[dependencies.sc-consensus-aura]
+git = "https://github.com/paritytech/substrate"
+package = "sc-consensus-aura"
+rev = "1294685848c35114769fb4f766643f1b5bd1b516"
+
+[dependencies.sp-consensus]
+git = "https://github.com/paritytech/substrate"
+package = "sp-consensus"
+rev = "1294685848c35114769fb4f766643f1b5bd1b516"
 
 [dependencies.grandpa]
 git = "https://github.com/paritytech/substrate"
-package = "substrate-finality-grandpa"
-rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+package = "sc-finality-grandpa"
+rev = "1294685848c35114769fb4f766643f1b5bd1b516"
 
 [dependencies.grandpa-primitives]
 git = "https://github.com/paritytech/substrate"
-package = "substrate-finality-grandpa-primitives"
-rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+package = "sp-finality-grandpa"
+rev = "1294685848c35114769fb4f766643f1b5bd1b516"
 
-[dependencies.substrate-client]
+[dependencies.sc-client]
 git = "https://github.com/paritytech/substrate"
-package = "substrate-client"
-rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+package = "sc-client"
+rev = "1294685848c35114769fb4f766643f1b5bd1b516"
 
 [dependencies.substratee-node-runtime]
 path = "runtime"
 
-[dependencies.sr-primitives]
+[dependencies.sp-runtime]
 git = "https://github.com/paritytech/substrate"
-package = "sr-primitives"
-rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+package = "sp-runtime"
+rev = "1294685848c35114769fb4f766643f1b5bd1b516"
 
-[dependencies.basic-authorship]
+[dependencies.sc-basic-authorship]
 git = "https://github.com/paritytech/substrate"
-package = "substrate-basic-authorship"
-rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+package = "sc-basic-authorship"
+rev = "1294685848c35114769fb4f766643f1b5bd1b516"
 
 [dependencies.host_calls]
 path = "host_calls"
@@ -109,4 +120,4 @@ vergen = "3.0.4"
 [build-dependencies.build-script-utils]
 git = "https://github.com/paritytech/substrate"
 package = "substrate-build-script-utils"
-rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+rev = "1294685848c35114769fb4f766643f1b5bd1b516"

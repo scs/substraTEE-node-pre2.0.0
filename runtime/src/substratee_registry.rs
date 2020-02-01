@@ -15,14 +15,14 @@
 
 */
 
+use frame_support::{decl_module, decl_storage, decl_event, decl_error, dispatch, ensure};
+
 use codec::{Decode, Encode};
-use rstd::prelude::*;
-use rstd::str;
-use runtime_io::misc::print_utf8;
+use sp_std::prelude::*;
+use sp_std::str;
+use sp_io::misc::print_utf8;
 use host_calls::runtime_interfaces::verify_ra_report;
 use host_calls::{SgxReport, SgxStatus};
-use support::{decl_event, decl_module,
-              decl_storage, dispatch::Result, ensure, StorageLinkedMap};
 use system::ensure_signed;
 
 pub trait Trait: balances::Trait {
@@ -42,6 +42,18 @@ pub struct Enclave<PubKey, Url> {
     url: Url,               // utf8 encoded url
 }
 
+decl_storage! {
+	trait Store for Module<T: Trait> as substraTEERegistry {
+	    // Simple lists are not supported in runtime modules as theoretically O(n)
+	    // operations can be executed while only being charged O(1), see substrate
+	    // Kitties tutorial Chapter 2, Tracking all Kitties.
+        pub EnclaveRegistry get(enclave): linked_map hasher(blake2_256) u64 => Enclave<T::AccountId, Vec<u8>>;
+	    pub EnclaveCount get(num_enclaves): u64;
+	    pub EnclaveIndex: map hasher(blake2_256) T::AccountId => u64;
+	    pub LatestIPFSHash get(ipfs_hash) : Vec<u8>;
+	}
+}
+
 decl_event!(
 	pub enum Event<T>
 	where
@@ -55,17 +67,28 @@ decl_event!(
 	}
 );
 
-decl_storage! {
-	trait Store for Module<T: Trait> as substraTEERegistry {
-	    // Simple lists are not supported in runtime modules as theoretically O(n)
-	    // operations can be executed while only being charged O(1), see substrate
-	    // Kitties tutorial Chapter 2, Tracking all Kitties.
-        pub EnclaveRegistry get(enclave): linked_map u64 => Enclave<T::AccountId, Vec<u8>>;
-	    pub EnclaveCount get(num_enclaves): u64;
-	    pub EnclaveIndex: map T::AccountId => u64;
-	    pub LatestIPFSHash get(ipfs_hash) : Vec<u8>;
+// TODO: The pallet's errors
+decl_error! {
+	pub enum Error for Module<T: Trait> {
+		/// Value was None
+		NoneValue,
+		/// Value reached maximum and cannot be incremented further
+        StorageOverflow,
+        StorageUnderflow,
+        /// one of the parameters is invalid
+        InvalidParameter,
+        PayloadTooBig,
+        // extrinsic must be signed by attested enclave key or:
+        WrongSigner,
+        ///
+        InvalidRemoteAttestation,
+        /// "RA status is insufficient"
+        InsufficientRemoteAttestationStatus,
+        /// an unregistered enclave tries to commit a state update
+        UnregisteredEnclave,
 	}
 }
+
 
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
@@ -73,36 +96,35 @@ decl_module! {
  		fn deposit_event() = default;
 
 		// the substraTEE-worker wants to register his enclave
- 		pub fn register_enclave(origin, ra_report: Vec<u8>, ra_signer_attn: Vec<u32>, worker_url: Vec<u8>) -> Result {
+ 		pub fn register_enclave(origin, ra_report: Vec<u8>, ra_signer_attn: Vec<u32>, worker_url: Vec<u8>) -> dispatch::DispatchResult {
 			let sender = ensure_signed(origin)?;
-            ensure!(ra_report.len() <= MAX_RA_REPORT_LEN, "RA report too long");
-            ensure!(ra_signer_attn.len() == RA_SIGNER_ATTN_LEN, "wrong RA signer attestation length");
-            ensure!(worker_url.len() <= MAX_URL_LEN, "URL too long");
+            ensure!(ra_report.len() <= MAX_RA_REPORT_LEN, Error::<T>::PayloadTooBig);
+            ensure!(ra_signer_attn.len() == RA_SIGNER_ATTN_LEN, Error::<T>::PayloadTooBig);
+            ensure!(worker_url.len() <= MAX_URL_LEN, Error::<T>::PayloadTooBig);
 
             match verify_ra_report(&ra_report, &ra_signer_attn, &sender.encode()) {
                 Some(rep) => {
                     let report = SgxReport::decode(&mut &rep[..]).unwrap();
                     let enclave_signer = match T::AccountId::decode(&mut &report.pubkey[..]) {
                         Ok(signer) => signer,
-                        Err(_) => return Err("failed to decode enclave signer")
+                        Err(_) => return Err(Error::<T>::InvalidParameter)?
                     };
                     // this is actually already implicitly tested by verify_ra_report
-                    ensure!(sender == enclave_signer, 
-                        "extrinsic must be signed by attested enclave key");
+                    ensure!(sender == enclave_signer, Error::<T>::WrongSigner);
                     ensure!((report.status == SgxStatus::Ok) | (report.status == SgxStatus::ConfigurationNeeded), 
-                        "RA status is insufficient");
+                        Error::<T>::InsufficientRemoteAttestationStatus);
                     Self::register_verified_enclave(&sender, &report, &worker_url)?;
                     Self::deposit_event(RawEvent::AddedEnclave(sender, worker_url));
                     Ok(())
                                 
                 }
-                None => Err("Verifying RA report failed... returning")
+                None => Err(Error::<T>::InvalidRemoteAttestation)?
             }
 		}
         // TODO: we can't expect a dead enclave to unregister itself
         // alternative: allow anyone to unregister an enclave that hasn't recently supplied a RA
         // such a call should be feeless if successful
-		pub fn unregister_enclave(origin) -> Result {
+		pub fn unregister_enclave(origin) -> dispatch::DispatchResult {
 		    let sender = ensure_signed(origin)?;
 
             Self::remove_enclave(&sender)?;
@@ -110,7 +132,7 @@ decl_module! {
             Ok(())
 		}
 
-		pub fn call_worker(origin, payload: Vec<u8>) -> Result {
+		pub fn call_worker(origin, payload: Vec<u8>) -> dispatch::DispatchResult {
 			let sender = ensure_signed(origin)?;
 
  			Self::deposit_event(RawEvent::Forwarded(sender, payload));
@@ -119,10 +141,9 @@ decl_module! {
 		}
 
 		// the substraTEE-worker calls this function for every processed call to confirm a state update
- 		pub fn confirm_call(origin, call_hash: Vec<u8>, ipfs_hash: Vec<u8>) -> Result {
+ 		pub fn confirm_call(origin, call_hash: Vec<u8>, ipfs_hash: Vec<u8>) -> dispatch::DispatchResult {
 			let sender = ensure_signed(origin)?;
-			ensure!(<EnclaveIndex<T>>::exists(&sender),
-		    "[SubstraTEERegistry]: IPFS state update requested by enclave that is not registered");
+            ensure!(<EnclaveIndex<T>>::exists(&sender), Error::<T>::UnregisteredEnclave);
 
             <LatestIPFSHash>::put(ipfs_hash.clone());
 
@@ -134,7 +155,7 @@ decl_module! {
 }
 
 impl<T: Trait> Module<T> {
-    fn register_verified_enclave(sender: &T::AccountId, report: &SgxReport, url: &[u8]) -> Result {
+    fn register_verified_enclave(sender: &T::AccountId, report: &SgxReport, url: &[u8]) -> dispatch::DispatchResult {
         let enclave = Enclave {
             pubkey: sender.clone(),
             mr_enclave: report.mr_enclave.clone(),
@@ -148,7 +169,7 @@ impl<T: Trait> Module<T> {
             },
             false => {
                 let enclaves_count = Self::num_enclaves().checked_add(1)
-                  .ok_or("[SubstraTEERegistry]: Overflow adding new enclave to registry")?;
+                    .ok_or(Error::<T>::StorageOverflow)?;
                 <EnclaveIndex<T>>::insert(sender, enclaves_count);
                 <EnclaveCount>::put(enclaves_count);            
                 enclaves_count
@@ -158,13 +179,13 @@ impl<T: Trait> Module<T> {
         Ok(())
     }
 
-    fn remove_enclave(sender: &T::AccountId) -> Result {
-        ensure!(<EnclaveIndex<T>>::exists(sender), "[SubstraTEERegistry]: Trying to remove an enclave that doesn't exist.");
+    fn remove_enclave(sender: &T::AccountId) -> dispatch::DispatchResult {
+        ensure!(<EnclaveIndex<T>>::exists(sender), Error::<T>::InvalidParameter);
         let index_to_remove = <EnclaveIndex<T>>::take(sender);
 
         let enclaves_count = Self::num_enclaves();
         let new_enclaves_count = enclaves_count.checked_sub(1).
-            ok_or("[SubstraTEERegistry]: Underflow removing an enclave from the registry")?;
+            ok_or(Error::<T>::StorageUnderflow)?;
 
         Self::swap_and_pop(index_to_remove, new_enclaves_count)?;
         <EnclaveCount>::put(new_enclaves_count);
@@ -181,7 +202,7 @@ impl<T: Trait> Module<T> {
     /// Our list implementation would introduce holes in out list if if we try to remove elements from the middle.
     /// As the order of the enclave entries is not important, we use the swap an pop method to remove elements from
     /// the registry.
-    fn swap_and_pop(index_to_remove: u64, new_enclaves_count: u64) -> Result {
+    fn swap_and_pop(index_to_remove: u64, new_enclaves_count: u64) -> dispatch::DispatchResult {
         if index_to_remove != new_enclaves_count {
             let last_enclave = <EnclaveRegistry<T>>::get(&new_enclaves_count);
             <EnclaveRegistry<T>>::insert(index_to_remove, &last_enclave);
@@ -199,12 +220,12 @@ mod tests {
     use super::*;
     use crate::substratee_registry;
 	use support::{impl_outer_event, impl_outer_origin, parameter_types, assert_ok};
-	use sr_primitives::{Perbill, traits::{IdentityLookup, BlakeTwo256}, testing::Header};
+	use sp_runtime::{Perbill, traits::{IdentityLookup, BlakeTwo256}, testing::Header};
 	use std::{collections::HashSet, cell::RefCell};
 	use externalities::set_and_run_with_externalities;
 	use primitives::{H256, Blake2Hasher, Pair, Public, sr25519};
 	use support::traits::{Currency, Get, FindAuthor, LockIdentifier};
-	use sr_primitives::weights::Weight;
+	use sp_runtime::weights::Weight;
 
 	thread_local! {
 		static EXISTENTIAL_DEPOSIT: RefCell<u64> = RefCell::new(0);

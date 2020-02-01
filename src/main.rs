@@ -1,17 +1,16 @@
 //! Substrate Node Template CLI library.
-
 #![warn(missing_docs)]
-#![warn(unused_extern_crates)]
 
 mod chain_spec;
 #[macro_use]
 mod service;
 mod cli;
+mod command;
 
-pub use substrate_cli::{VersionInfo, IntoExit, error};
+pub use sc_cli::{VersionInfo, error};
 
-fn main() -> Result<(), cli::error::Error> {
-	let version = VersionInfo {
+fn main() -> Result<(), error::Error> {
+    let version = VersionInfo {
         name: "Substrate Node",
         commit: env!("VERGEN_SHA_SHORT"),
         version: env!("CARGO_PKG_VERSION"),
@@ -19,7 +18,8 @@ fn main() -> Result<(), cli::error::Error> {
         author: "Supercomputing Systems AG",
         description: "substratee-node",
         support_url: "support.anonymous.an",
-	};
+        copyright_start_year: 2017,
+    };
 
-	cli::run(std::env::args(), cli::Exit, version)
+    command::run(version)
 }
