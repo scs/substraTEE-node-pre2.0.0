@@ -7,11 +7,26 @@ use remote_attestation::verify_mra_cert;
 use runtime_interface::runtime_interface;
 use codec::{Decode, Encode};
 
+#[derive(Encode, Decode, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "std", derive(Debug))]
+pub enum SgxStatus {
+	Invalid,
+	Ok,
+	GroupOutOfDate,
+	GroupRevoked,
+	ConfigurationNeeded
+}
+impl Default for SgxStatus {
+    fn default() -> Self { SgxStatus::Invalid }
+}
+
 #[derive(Encode, Decode, Default, Copy, Clone, PartialEq)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub struct SgxReport {
     pub mr_enclave: [u8; 32],
-    pub pubkey: [u8; 32]
+	pub pubkey: [u8; 32],
+	pub status: SgxStatus,
+	pub timestamp: i64
 }
 
 #[runtime_interface]

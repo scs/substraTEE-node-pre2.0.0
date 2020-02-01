@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 sgx_types       = { rev = "v1.1.0", git = "https://github.com/apache/teaclave-sgx-sdk.git" }
-sgx_ucrypto     = { rev = "v1.1.0", git = "https://github.com/apache/teaclave-sgx-sdk.git" }
+sgx_ucrypto     = { rev = "v1.1.0", git = "https://github.com/apache/teaclave-sgx-sdk.git", optional = true }
 
 base64          = { version = "0.11", optional = true }
 chrono          = { version = "0.4", optional = true }
@@ -49,4 +49,5 @@ std = [
     "webpki/std",
     "runtime-interface/std",
     "runtime-io/std",
+    "sgx_ucrypto"
 ]

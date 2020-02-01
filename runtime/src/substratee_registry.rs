@@ -20,7 +20,7 @@ use rstd::prelude::*;
 use rstd::str;
 use runtime_io::misc::print_utf8;
 use host_calls::runtime_interfaces::verify_ra_report;
-use host_calls::SgxReport;
+use host_calls::{SgxReport, SgxStatus};
 use support::{decl_event, decl_module,
               decl_storage, dispatch::Result, ensure, StorageLinkedMap};
 use system::ensure_signed;
@@ -36,9 +36,10 @@ const RA_SIGNER_ATTN_LEN: usize = 64;
 #[derive(Encode, Decode, Default, Copy, Clone, PartialEq)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub struct Enclave<PubKey, Url> {
-    pubkey: PubKey,
-    // utf8 encoded url
-    url: Url,
+    pubkey: PubKey,         // FIXME: this is redundant information
+    mr_enclave: [u8; 32],
+    timestamp: i64,          // unix epoch
+    url: Url,               // utf8 encoded url
 }
 
 decl_event!(
@@ -81,10 +82,16 @@ decl_module! {
             match verify_ra_report(&ra_report, &ra_signer_attn, &sender.encode()) {
                 Some(rep) => {
                     let report = SgxReport::decode(&mut &rep[..]).unwrap();
+                    let enclave_signer = match T::AccountId::decode(&mut &report.pubkey[..]) {
+                        Ok(signer) => signer,
+                        Err(_) => return Err("failed to decode enclave signer")
+                    };
                     // this is actually already implicitly tested by verify_ra_report
-                    //ensure!(sender == T::AccountId::from(report.pubkey), 
-                    //    "extrinsic must be signed by attested enclave key");
-                    Self::add_enclave(&sender, &worker_url)?;
+                    ensure!(sender == enclave_signer, 
+                        "extrinsic must be signed by attested enclave key");
+                    ensure!((report.status == SgxStatus::Ok) | (report.status == SgxStatus::ConfigurationNeeded), 
+                        "RA status is insufficient");
+                    Self::register_verified_enclave(&sender, &report, &worker_url)?;
                     Self::deposit_event(RawEvent::AddedEnclave(sender, worker_url));
                     Ok(())
                                 
@@ -92,7 +99,9 @@ decl_module! {
                 None => Err("Verifying RA report failed... returning")
             }
 		}
-
+        // TODO: we can't expect a dead enclave to unregister itself
+        // alternative: allow anyone to unregister an enclave that hasn't recently supplied a RA
+        // such a call should be feeless if successful
 		pub fn unregister_enclave(origin) -> Result {
 		    let sender = ensure_signed(origin)?;
 
@@ -125,24 +134,27 @@ decl_module! {
 }
 
 impl<T: Trait> Module<T> {
-    fn add_enclave(sender: &T::AccountId, url: &[u8]) -> Result {
-        if <EnclaveIndex<T>>::exists(sender) {
-            print_utf8(b"Updating already registered enclave");
-            return Self::update_enclave(sender, url)
-        }
-        let enclaves_count = Self::num_enclaves();
-        let new_enclaves_count = enclaves_count.checked_add(1).
-            ok_or("[SubstraTEERegistry]: Overflow adding new enclave to registry")?;
-
-        let new_enclave = Enclave {
+    fn register_verified_enclave(sender: &T::AccountId, report: &SgxReport, url: &[u8]) -> Result {
+        let enclave = Enclave {
             pubkey: sender.clone(),
+            mr_enclave: report.mr_enclave.clone(),
+            timestamp: report.timestamp,
             url: url.to_vec(),
         };
-
-        <EnclaveRegistry<T>>::insert(enclaves_count, &new_enclave);
-        <EnclaveCount>::put(new_enclaves_count);
-        <EnclaveIndex<T>>::insert(sender, enclaves_count);
-
+        let enclave_idx = match <EnclaveIndex<T>>::exists(sender) {
+            true => {
+                print_utf8(b"Updating already registered enclave");
+                <EnclaveIndex<T>>::get(sender)
+            },
+            false => {
+                let enclaves_count = Self::num_enclaves().checked_add(1)
+                  .ok_or("[SubstraTEERegistry]: Overflow adding new enclave to registry")?;
+                <EnclaveIndex<T>>::insert(sender, enclaves_count);
+                <EnclaveCount>::put(enclaves_count);            
+                enclaves_count
+            }
+        };
+        <EnclaveRegistry<T>>::insert(enclave_idx, &enclave);
         Ok(())
     }
 
@@ -156,15 +168,6 @@ impl<T: Trait> Module<T> {
 
         Self::swap_and_pop(index_to_remove, new_enclaves_count)?;
         <EnclaveCount>::put(new_enclaves_count);
-
-        Ok(())
-    }
-
-    fn update_enclave(sender: &T::AccountId, url: &[u8]) -> Result {
-        let key = <EnclaveIndex<T>>::get(sender);
-        let mut enc = <EnclaveRegistry<T>>::get(key);
-        enc.url = url.to_vec();
-        <EnclaveRegistry<T>>::insert(key, enc);
 
         Ok(())
     }

@@ -18,7 +18,6 @@
 use std::io::BufReader;
 use std::ptr;
 use std::time::SystemTime;
-use std::time::UNIX_EPOCH;
 use std::vec::Vec;
 
 use chrono::prelude::*;
@@ -28,8 +27,8 @@ use serde_json::Value;
 use sgx_types::*;
 use sgx_ucrypto::SgxEccHandle;
 
-use codec::{Decode, Encode};
-use super::SgxReport;
+use codec::Encode;
+use super::{SgxReport, SgxStatus};
 
 type SignatureAlgorithms = &'static [&'static webpki::SignatureAlgorithm];
 
@@ -165,77 +164,42 @@ pub fn verify_mra_cert(cert_der: &[u8], xt_signer_attn: &[u32], xt_signer: &[u8]
         },
     }
 
-    // Verify attestation report
-    // 1. Check timestamp is within 24H (90day is recommended by Intel)
+    // parse attestation report
     let attn_report: Value = match serde_json::from_slice(attn_report_raw) {
         Ok(report) => report,
         Err(_) => return Err("RA report parsing error"),
     };
-    if let Value::String(time) = &attn_report["timestamp"] {
-        let time_fixed = time.clone() + "+0000";
-        let ts = match DateTime::parse_from_str(&time_fixed, "%Y-%m-%dT%H:%M:%S%.f%z") {
-            Ok(d) => d.timestamp(),
-            Err(_) => return Err("RA report timestamp parsing error"),
-        };
-        let now = match SystemTime::now().duration_since(UNIX_EPOCH) {
-            Ok(n) => n.as_secs() as i64,
-            Err(_) => return Err("RA timestamp is before UNIX_EPOCH"),
-        };
-        info!("Time diff = {}", now - ts);
-    } else {
-        return Err("Failed to fetch timestamp from attestation report");
-    }
 
-    // 2. Verify quote status (mandatory field)
-    if let Value::String(quote_status) = &attn_report["isvEnclaveQuoteStatus"] {
-        info!("isvEnclaveQuoteStatus = {}", quote_status);
-        match quote_status.as_ref() {
-            "OK" => (),
-            "GROUP_OUT_OF_DATE" | "GROUP_REVOKED" | "CONFIGURATION_NEEDED" => {
-                // Verify platformInfoBlob for further info if status not OK
-                if let Value::String(pib) = &attn_report["platformInfoBlob"] {
-                    let mut buf = Vec::new();
-
-                    // the TLV Header (4 bytes/8 hexes) should be skipped
-                    let n = (pib.len() - 8) / 2;
-                    for i in 0..n {
-                        buf.push(u8::from_str_radix(&pib[(i * 2 + 8)..(i * 2 + 10)], 16).unwrap());
-                    }
-
-//                    let mut update_info = sgx_update_info_bit_t::default();
-//                    let mut rt: sgx_status_t = sgx_status_t::SGX_ERROR_UNEXPECTED;
-//                    let res = unsafe {
-//                        ocall_get_update_info(&mut rt as *mut sgx_status_t,
-//                                              buf.as_slice().as_ptr() as *const sgx_platform_info_t,
-//                                              1,
-//                                              &mut update_info as *mut sgx_update_info_bit_t)
-//                    };
-//                    if res != sgx_status_t::SGX_SUCCESS {
-//                        println!("res={:?}", res);
-//                        return Err(res);
-//                    }
-//
-//                    if rt != sgx_status_t::SGX_SUCCESS {
-//                        println!("rt={:?}", rt);
-//                        // Borrow of packed field is unsafe in future Rust releases
-//                        unsafe {
-//                            println!("update_info.pswUpdate: {}", update_info.pswUpdate);
-//                            println!("update_info.csmeFwUpdate: {}", update_info.csmeFwUpdate);
-//                            println!("update_info.ucodeUpdate: {}", update_info.ucodeUpdate);
-//                        }
-//                        return Err(rt);
-//                    }
-                } else {
-                    return Err("Failed to fetch platformInfoBlob from attestation report");
-                }
+    // get timestamp
+    // TODO: do later in runtime: Check timestamp is within 24H (90day is recommended by Intel)
+    let ra_timestamp = match &attn_report["timestamp"] {
+        Value::String(time) => {
+            let time_fixed = time.clone() + "+0000";
+            match DateTime::parse_from_str(&time_fixed, "%Y-%m-%dT%H:%M:%S%.f%z") {
+                Ok(d) => d.timestamp(),
+                Err(_) => return Err("RA report timestamp parsing error"),
             }
-            _ => return Err("Unexpected Enclave Quote Status"),
-        }
-    } else {
-        return Err("Failed to fetch isvEnclaveQuoteStatus from attestation report");
-    }
+        },
+        _ => return Err("Failed to fetch timestamp from attestation report")
+    
+    };
 
-    // 3. Verify quote body
+    // get quote status (mandatory field)
+    let ra_status = match &attn_report["isvEnclaveQuoteStatus"] {
+        Value::String(quote_status) => {
+            info!("isvEnclaveQuoteStatus = {}", quote_status);
+            match quote_status.as_ref() {
+                "OK" => SgxStatus::Ok,
+                "GROUP_OUT_OF_DATE" => SgxStatus::GroupOutOfDate,
+                "GROUP_REVOKED" => SgxStatus::GroupRevoked,
+                "CONFIGURATION_NEEDED" => SgxStatus::ConfigurationNeeded,
+                _ => SgxStatus::Invalid
+            }
+        },
+        _ => return Err("Failed to fetch isvEnclaveQuoteStatus from attestation report")
+    };
+
+    // parse quote body
     if let Value::String(quote_raw) = &attn_report["isvEnclaveQuoteBody"] {
         let quote = match base64::decode(&quote_raw) {
             Ok(q) => q,
@@ -266,20 +230,30 @@ pub fn verify_mra_cert(cert_der: &[u8], xt_signer_attn: &[u32], xt_signer: &[u8]
         let _result = ecc_handle.open();
 
         let mut ephemeral_pub = sgx_ec256_public_t::default();
-        // FIXME: should this be little-endian?
-        ephemeral_pub.gx.copy_from_slice(&pub_k[..31]);
+        ephemeral_pub.gx.copy_from_slice(&pub_k[..32]);
         ephemeral_pub.gy.copy_from_slice(&pub_k[32..]);
+        // key is stored in little-endian order in RA report. reverse!
+        ephemeral_pub.gx.reverse();
+        ephemeral_pub.gy.reverse();
 
         let mut signature = sgx_ec256_signature_t::default();
-        signature.x.copy_from_slice(&xt_signer_attn[..7]);
+        signature.x.copy_from_slice(&xt_signer_attn[..8]);
         signature.y.copy_from_slice(&xt_signer_attn[8..]);
 
         // TODO: error handling
         if ecc_handle.ecdsa_verify_slice(&xt_signer, &ephemeral_pub, &signature) == Ok(false) {
             return Err("wrong signature. Could not verify that the extrinsic signer is the enclave itself") 
         }
+        info!("extrinsic signer pubkey has been attested: {:02x}", xt_signer.iter().format(""));
 
-        Ok(SgxReport::default().encode())
+        let mut xt_signer_array = [0u8; 32];
+        xt_signer_array.copy_from_slice(xt_signer);
+        Ok(SgxReport{
+                mr_enclave: sgx_quote.report_body.mr_enclave.m,
+                status: ra_status,
+                pubkey: xt_signer_array,
+                timestamp: ra_timestamp
+            }.encode())
     } else {
         return Err("Failed to fetch isvEnclaveQuoteBody from attestation report");
     }
