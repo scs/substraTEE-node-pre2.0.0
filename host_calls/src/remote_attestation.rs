@@ -52,6 +52,7 @@ pub const IAS_REPORT_CA: &[u8] = include_bytes!("../AttestationReportSigningCACe
 
 
 pub fn verify_mra_cert(cert_der: &[u8], xt_signer_attn: &[u32], xt_signer: &[u8]) -> Result<Vec<u8>, &'static str> {
+    debug!("verifyRA: start verifying RA cert");
     // Before we reach here, the runtime already verifed the cert is properly signed by the extrinsic sender
     // Search for Public Key prime256v1 OID
     let prime256v1_oid = &[0x06, 0x08, 0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x03, 0x01, 0x07];
@@ -72,6 +73,7 @@ pub fn verify_mra_cert(cert_der: &[u8], xt_signer_attn: &[u32], xt_signer: &[u8]
     offset += 1;
     let pub_k = cert_der[offset + 2..offset + len].to_vec(); // skip "00 04"
 
+    debug!("verifyRA public key: {:02x}", pub_k.iter().format(""));
 
     // Search for Netscape Comment OID
     let ns_cmt_oid = &[0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x86, 0xF8, 0x42, 0x01, 0x0D];
@@ -151,6 +153,7 @@ pub fn verify_mra_cert(cert_der: &[u8], xt_signer_attn: &[u32], xt_signer: &[u8]
         Ok(_) => info!("Cert is good"),
         Err(e) => error!("Cert verification error {:?}", e),
     }
+    debug!("verifyRA Intel Certificate is good");
 
     // Verify the signature against the signing cert
     match sig_cert.verify_signature(
@@ -163,6 +166,7 @@ pub fn verify_mra_cert(cert_der: &[u8], xt_signer_attn: &[u32], xt_signer: &[u8]
             return Err("Signature verification error");
         },
     }
+    debug!("verifyRA Intel signature is good");
 
     // parse attestation report
     let attn_report: Value = match serde_json::from_slice(attn_report_raw) {
@@ -183,6 +187,7 @@ pub fn verify_mra_cert(cert_der: &[u8], xt_signer_attn: &[u32], xt_signer: &[u8]
         _ => return Err("Failed to fetch timestamp from attestation report")
     
     };
+    debug!("verifyRA attestation timestamp [unix epoch]: {}", ra_timestamp);
 
     // get quote status (mandatory field)
     let ra_status = match &attn_report["isvEnclaveQuoteStatus"] {
@@ -198,6 +203,7 @@ pub fn verify_mra_cert(cert_der: &[u8], xt_signer_attn: &[u32], xt_signer: &[u8]
         },
         _ => return Err("Failed to fetch isvEnclaveQuoteStatus from attestation report")
     };
+    debug!("verifyRA attestation status is: {:?}", ra_status);
 
     // parse quote body
     if let Value::String(quote_raw) = &attn_report["isvEnclaveQuoteBody"] {
@@ -205,7 +211,7 @@ pub fn verify_mra_cert(cert_der: &[u8], xt_signer_attn: &[u32], xt_signer: &[u8]
             Ok(q) => q,
             Err(_) => return Err("Quote Decoding Error"),
         };
-        println!("Quote = {:?}", quote);
+        debug!("Quote = {:?}", quote);
         // TODO: lack security check here
         let sgx_quote: sgx_quote_t = unsafe { ptr::read(quote.as_ptr() as *const _) };
 
@@ -223,7 +229,7 @@ pub fn verify_mra_cert(cert_der: &[u8], xt_signer_attn: &[u32], xt_signer: &[u8]
         }
         info!("Anticipated public key = {:02x}", pub_k.iter().format(""));
         if sgx_quote.report_body.report_data.d.to_vec() == pub_k.to_vec() {
-            println!("Remote attestation of enclave successful!");
+            info!("Remote attestation of enclave successful!");
         }
         
         let ecc_handle = SgxEccHandle::new();

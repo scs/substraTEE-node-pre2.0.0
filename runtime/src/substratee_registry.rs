@@ -74,12 +74,14 @@ decl_module! {
 
 		// the substraTEE-worker wants to register his enclave
  		pub fn register_enclave(origin, ra_report: Vec<u8>, ra_signer_attn: [u32; 16], worker_url: Vec<u8>) -> Result {
-			let sender = ensure_signed(origin)?;
+            print_utf8(b"substraTEE_registry: called into runtime call register_enclave()");
+            let sender = ensure_signed(origin)?;
             ensure!(ra_report.len() <= MAX_RA_REPORT_LEN, "RA report too long");
             ensure!(worker_url.len() <= MAX_URL_LEN, "URL too long");
-
+            print_utf8(b"substraTEE_registry: parameter lenght ok");
             match verify_ra_report(&ra_report, &ra_signer_attn.to_vec(), &sender.encode()) {
                 Some(rep) => {
+                    print_utf8(b"substraTEE_registry: host_call successful");
                     let report = SgxReport::decode(&mut &rep[..]).unwrap();
                     let enclave_signer = match T::AccountId::decode(&mut &report.pubkey[..]) {
                         Ok(signer) => signer,
@@ -92,6 +94,7 @@ decl_module! {
                         "RA status is insufficient");
                     Self::register_verified_enclave(&sender, &report, &worker_url)?;
                     Self::deposit_event(RawEvent::AddedEnclave(sender, worker_url));
+                    print_utf8(b"substraTEE_registry: enclave registered");
                     Ok(())
                                 
                 }
