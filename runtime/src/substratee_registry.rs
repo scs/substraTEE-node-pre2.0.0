@@ -73,13 +73,12 @@ decl_module! {
  		fn deposit_event() = default;
 
 		// the substraTEE-worker wants to register his enclave
- 		pub fn register_enclave(origin, ra_report: Vec<u8>, ra_signer_attn: Vec<u32>, worker_url: Vec<u8>) -> Result {
+ 		pub fn register_enclave(origin, ra_report: Vec<u8>, ra_signer_attn: [u32; 16], worker_url: Vec<u8>) -> Result {
 			let sender = ensure_signed(origin)?;
             ensure!(ra_report.len() <= MAX_RA_REPORT_LEN, "RA report too long");
-            ensure!(ra_signer_attn.len() == RA_SIGNER_ATTN_LEN, "wrong RA signer attestation length");
             ensure!(worker_url.len() <= MAX_URL_LEN, "URL too long");
 
-            match verify_ra_report(&ra_report, &ra_signer_attn, &sender.encode()) {
+            match verify_ra_report(&ra_report, &ra_signer_attn.to_vec(), &sender.encode()) {
                 Some(rep) => {
                     let report = SgxReport::decode(&mut &rep[..]).unwrap();
                     let enclave_signer = match T::AccountId::decode(&mut &report.pubkey[..]) {
