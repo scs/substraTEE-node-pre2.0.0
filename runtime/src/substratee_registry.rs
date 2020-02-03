@@ -59,7 +59,10 @@ decl_storage! {
 	trait Store for Module<T: Trait> as substraTEERegistry {
 	    // Simple lists are not supported in runtime modules as theoretically O(n)
 	    // operations can be executed while only being charged O(1), see substrate
-	    // Kitties tutorial Chapter 2, Tracking all Kitties.
+        // Kitties tutorial Chapter 2, Tracking all Kitties.
+        
+        // watch out: we start indexing with 1 instead of zero in order to 
+        // avoid ambiguity between Null and 0
         pub EnclaveRegistry get(enclave): linked_map u64 => Enclave<T::AccountId, Vec<u8>>;
 	    pub EnclaveCount get(num_enclaves): u64;
 	    pub EnclaveIndex: map T::AccountId => u64;
