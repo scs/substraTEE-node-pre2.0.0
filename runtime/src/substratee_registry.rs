@@ -36,10 +36,10 @@ const RA_SIGNER_ATTN_LEN: usize = 64;
 #[derive(Encode, Decode, Default, Copy, Clone, PartialEq)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub struct Enclave<PubKey, Url> {
-    pubkey: PubKey,         // FIXME: this is redundant information
-    mr_enclave: [u8; 32],
-    timestamp: i64,          // unix epoch
-    url: Url,               // utf8 encoded url
+    pub pubkey: PubKey,         // FIXME: this is redundant information
+    pub mr_enclave: [u8; 32],
+    pub timestamp: i64,          // unix epoch
+    pub url: Url,               // utf8 encoded url
 }
 
 decl_event!(
