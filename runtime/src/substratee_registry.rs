@@ -42,12 +42,12 @@ pub struct Enclave<PubKey, Url> {
     pub url: Url,       // utf8 encoded url
 }
 
-pub type Shard = H256;
+pub type ShardIdentifier = H256;
 
 #[derive(Encode, Decode, Debug, Default, Clone, PartialEq, Eq)]
 //#[cfg_attr(feature = "std", derive(Debug))]
 pub struct Request{
-    pub shard: Shard,
+    pub shard: ShardIdentifier,
     pub cyphertext: Vec<u8>
 }
 
@@ -58,7 +58,7 @@ decl_event!(
 	{
 		AddedEnclave(AccountId, Vec<u8>),
 		RemovedEnclave(AccountId),
-		UpdatedIPFSHash(Shard,Vec<u8>),
+		UpdatedIPFSHash(ShardIdentifier,Vec<u8>),
 		Forwarded(Request),
 		CallConfirmed(AccountId, Vec<u8>),
 	}
@@ -75,7 +75,7 @@ decl_storage! {
         pub EnclaveRegistry get(enclave): linked_map u64 => Enclave<T::AccountId, Vec<u8>>;
         pub EnclaveCount get(num_enclaves): u64;
         pub EnclaveIndex: map T::AccountId => u64;
-        pub LatestIPFSHash get(ipfs_hash) : map Shard => Vec<u8>;
+        pub LatestIPFSHash get(ipfs_hash) : map ShardIdentifier => Vec<u8>;
     }
 }
 
@@ -135,7 +135,7 @@ decl_module! {
         }
 
         // the substraTEE-worker calls this function for every processed call to confirm a state update
-         pub fn confirm_call(origin, shard: Shard, call_hash: Vec<u8>, ipfs_hash: Vec<u8>) -> Result {
+         pub fn confirm_call(origin, shard: ShardIdentifier, call_hash: Vec<u8>, ipfs_hash: Vec<u8>) -> Result {
             let sender = ensure_signed(origin)?;
             ensure!(<EnclaveIndex<T>>::exists(&sender),
             "[SubstraTEERegistry]: IPFS state update requested by enclave that is not registered");
@@ -280,7 +280,7 @@ mod tests {
     #[derive(Clone, PartialEq, Eq, Debug)]
     pub struct TestRuntime;
     impl Trait for TestRuntime {
-        type Event = ();
+        type Event = TestEvent;
     }
 
     parameter_types! {
@@ -299,7 +299,7 @@ mod tests {
         type AccountId = AccountId;
         type Lookup = IdentityLookup<Self::AccountId>;
         type Header = Header;
-        type Event = ();
+        type Event = TestEvent;
         type BlockHashCount = BlockHashCount;
         type MaximumBlockWeight = MaximumBlockWeight;
         type MaximumBlockLength = MaximumBlockLength;
@@ -318,7 +318,7 @@ mod tests {
         type Balance = Balance;
         type OnFreeBalanceZero = ();
         type OnNewAccount = ();
-        type Event = ();
+        type Event = TestEvent;
         type TransferPayment = ();
         type DustRemoval = ();
         type ExistentialDeposit = ExistentialDeposit;
@@ -348,6 +348,19 @@ mod tests {
             runtime_io::TestExternalities::from(storage)
         }
     }
+
+    mod generic_event {
+        pub use super::super::Event;
+    }
+
+    impl_outer_event! {
+        pub enum TestEvent for TestRuntime {
+            generic_event<T>,
+            balances<T>,
+        }
+    }
+
+    pub type GenericEvent = Module<TestRuntime>;
 
     impl_outer_origin! {
         pub enum Origin for TestRuntime {}
@@ -595,6 +608,21 @@ mod tests {
                 ipfs_hash.as_bytes().to_vec()
             )
             .is_err());
+        })
+    }
+
+
+    #[test]
+    fn call_worker_works() {
+        ExtBuilder::build().execute_with(|| {
+            let req = Request { shard: ShardIdentifier::default(), cyphertext: vec![0u8,1,2,3,4]};
+            let (signer, signer_attn) = get_signer1();
+            assert!(Registry::call_worker(
+                Origin::signed(signer),
+                req.clone()
+            ).is_ok());
+            let expected_event = TestEvent::generic_event(RawEvent::Forwarded(req));
+            assert!(System::events().iter().any(|a| a.event == expected_event));
         })
     }
 }
