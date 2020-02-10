@@ -22,7 +22,7 @@ pipeline {
     stage('Test') {
       steps {
         echo 'Stage TEST'
-        sh 'cargo test -all'
+        sh 'cargo test --all'
       }
     }
     stage('Clippy') {
