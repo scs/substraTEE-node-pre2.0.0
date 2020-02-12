@@ -58,7 +58,7 @@ decl_event!(
 	{
 		AddedEnclave(AccountId, Vec<u8>),
 		RemovedEnclave(AccountId),
-		UpdatedIPFSHash(ShardIdentifier,Vec<u8>),
+		UpdatedIpfsHash(ShardIdentifier, u64, Vec<u8>),
 		Forwarded(Request),
 		CallConfirmed(AccountId, Vec<u8>),
 	}
@@ -73,9 +73,11 @@ decl_storage! {
         // watch out: we start indexing with 1 instead of zero in order to
         // avoid ambiguity between Null and 0
         pub EnclaveRegistry get(enclave): linked_map u64 => Enclave<T::AccountId, Vec<u8>>;
-        pub EnclaveCount get(num_enclaves): u64;
-        pub EnclaveIndex: map T::AccountId => u64;
-        pub LatestIPFSHash get(ipfs_hash) : map ShardIdentifier => Vec<u8>;
+        pub EnclaveCount get(enclave_count): u64;
+        pub EnclaveIndex get(enclave_index): map T::AccountId => u64;
+        pub LatestIpfsHash get(latest_ipfs_hash) : map ShardIdentifier => Vec<u8>;
+        // enclave index of the worker that recently committed an update
+        pub WorkerForShard get(worker_for_shard) : map ShardIdentifier => u64;
     }
 }
 
@@ -139,12 +141,13 @@ decl_module! {
             let sender = ensure_signed(origin)?;
             ensure!(<EnclaveIndex<T>>::exists(&sender),
             "[SubstraTEERegistry]: IPFS state update requested by enclave that is not registered");
-
-            <LatestIPFSHash>::insert(shard, ipfs_hash.clone());
+            let sender_index = Self::enclave_index(&sender);
+            <LatestIpfsHash>::insert(shard, ipfs_hash.clone());
+            <WorkerForShard>::insert(shard, sender_index);
 
             Self::deposit_event(RawEvent::CallConfirmed(sender, call_hash));
-            Self::deposit_event(RawEvent::UpdatedIPFSHash(shard, ipfs_hash));
-             Ok(())
+            Self::deposit_event(RawEvent::UpdatedIpfsHash(shard, sender_index, ipfs_hash));
+            Ok(())
         }
     }
 }
@@ -163,7 +166,7 @@ impl<T: Trait> Module<T> {
                 <EnclaveIndex<T>>::get(sender)
             }
             false => {
-                let enclaves_count = Self::num_enclaves()
+                let enclaves_count = Self::enclave_count()
                     .checked_add(1)
                     .ok_or("[SubstraTEERegistry]: Overflow adding new enclave to registry")?;
                 <EnclaveIndex<T>>::insert(sender, enclaves_count);
@@ -182,7 +185,7 @@ impl<T: Trait> Module<T> {
         );
         let index_to_remove = <EnclaveIndex<T>>::take(sender);
 
-        let enclaves_count = Self::num_enclaves();
+        let enclaves_count = Self::enclave_count();
         let new_enclaves_count = enclaves_count
             .checked_sub(1)
             .ok_or("[SubstraTEERegistry]: Underflow removing an enclave from the registry")?;
@@ -417,7 +420,7 @@ mod tests {
                 signer_attn,
                 URL.to_vec()
             ));
-            assert_eq!(Registry::num_enclaves(), 1);
+            assert_eq!(Registry::enclave_count(), 1);
         })
     }
 
@@ -431,9 +434,9 @@ mod tests {
                 signer_attn,
                 URL.to_vec()
             ));
-            assert_eq!(Registry::num_enclaves(), 1);
+            assert_eq!(Registry::enclave_count(), 1);
             assert_ok!(Registry::unregister_enclave(Origin::signed(signer)));
-            assert_eq!(Registry::num_enclaves(), 0);
+            assert_eq!(Registry::enclave_count(), 0);
             assert_eq!(Registry::list_enclaves(), vec![])
         })
     }
@@ -454,7 +457,7 @@ mod tests {
                 signer_attn,
                 URL.to_vec()
             ));
-            assert_eq!(Registry::num_enclaves(), 1);
+            assert_eq!(Registry::enclave_count(), 1);
             let enclaves = Registry::list_enclaves();
             assert_eq!(enclaves[0].1.pubkey, signer)
         })
@@ -495,7 +498,7 @@ mod tests {
                 signer_attn1,
                 URL.to_vec()
             ));
-            assert_eq!(Registry::num_enclaves(), 1);
+            assert_eq!(Registry::enclave_count(), 1);
             assert_eq!(Registry::list_enclaves(), vec![(1, e_1.clone())]);
 
             // add enclave 2
@@ -505,7 +508,7 @@ mod tests {
                 signer_attn2,
                 URL.to_vec()
             ));
-            assert_eq!(Registry::num_enclaves(), 2);
+            assert_eq!(Registry::enclave_count(), 2);
             assert_eq!(
                 Registry::list_enclaves(),
                 vec![(2, e_2.clone()), (1, e_1.clone())]
@@ -518,7 +521,7 @@ mod tests {
                 signer_attn3,
                 URL.to_vec()
             ));
-            assert_eq!(Registry::num_enclaves(), 3);
+            assert_eq!(Registry::enclave_count(), 3);
             assert_eq!(
                 Registry::list_enclaves(),
                 vec![(3, e_3.clone()), (2, e_2.clone()), (1, e_1.clone())]
@@ -526,7 +529,7 @@ mod tests {
 
             // remove enclave 2
             assert_ok!(Registry::unregister_enclave(Origin::signed(signer2)));
-            assert_eq!(Registry::num_enclaves(), 2);
+            assert_eq!(Registry::enclave_count(), 2);
             assert_eq!(
                 Registry::list_enclaves(),
                 vec![(2, e_3.clone()), (1, e_1.clone())]
@@ -579,20 +582,33 @@ mod tests {
     fn update_ipfs_hash_works() {
         ExtBuilder::build().execute_with(|| {
             let ipfs_hash = "QmYY9U7sQzBYe79tVfiMyJ4prEJoJRWCD8t85j9qjssS9y";
+            let shard = H256::default();
+            let request_hash =vec![];
             let (signer, signer_attn) = get_signer1();
+
+
             assert_ok!(Registry::register_enclave(
                 Origin::signed(signer.clone()),
                 TEST1_CERT.to_vec(),
                 signer_attn,
                 URL.to_vec()
             ));
+            assert_eq!(Registry::enclave_count(), 1);
             assert_ok!(Registry::confirm_call(
                 Origin::signed(signer.clone()),
-                H256::default(),
-                vec![],
+                shard.clone(),
+                request_hash.clone(),
                 ipfs_hash.as_bytes().to_vec()
             ));
-            assert_eq!(str::from_utf8(&Registry::ipfs_hash(H256::default())).unwrap(), ipfs_hash);
+            assert_eq!(str::from_utf8(&Registry::latest_ipfs_hash(shard.clone())).unwrap(), ipfs_hash);
+            assert_eq!(Registry::worker_for_shard(shard.clone()), 1u64);
+
+            let expected_event = TestEvent::generic_event(RawEvent::UpdatedIpfsHash(shard.clone(), 1, ipfs_hash.as_bytes().to_vec()));
+            assert!(System::events().iter().any(|a| a.event == expected_event));
+
+            let expected_event = TestEvent::generic_event(RawEvent::CallConfirmed(signer.clone(), request_hash));
+            assert!(System::events().iter().any(|a| a.event == expected_event));
+
         })
     }
 
