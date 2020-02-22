@@ -18,12 +18,12 @@
 use codec::{Decode, Encode};
 use host_calls::runtime_interfaces::verify_ra_report;
 use host_calls::SgxReport;
+use primitives::H256;
 use rstd::prelude::*;
 use rstd::str;
 use runtime_io::misc::print_utf8;
 use support::{decl_event, decl_module, decl_storage, dispatch::Result, ensure, StorageLinkedMap};
 use system::ensure_signed;
-use primitives::H256;
 
 pub trait Trait: balances::Trait {
     type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
@@ -45,22 +45,22 @@ pub type ShardIdentifier = H256;
 
 #[derive(Encode, Decode, Debug, Default, Clone, PartialEq, Eq)]
 //#[cfg_attr(feature = "std", derive(Debug))]
-pub struct Request{
+pub struct Request {
     pub shard: ShardIdentifier,
-    pub cyphertext: Vec<u8>
+    pub cyphertext: Vec<u8>,
 }
 
 decl_event!(
-	pub enum Event<T>
-	where
-		<T as system::Trait>::AccountId,
-	{
-		AddedEnclave(AccountId, Vec<u8>),
-		RemovedEnclave(AccountId),
-		UpdatedIpfsHash(ShardIdentifier, u64, Vec<u8>),
-		Forwarded(Request),
-		CallConfirmed(AccountId, Vec<u8>),
-	}
+    pub enum Event<T>
+    where
+        <T as system::Trait>::AccountId,
+    {
+        AddedEnclave(AccountId, Vec<u8>),
+        RemovedEnclave(AccountId),
+        UpdatedIpfsHash(ShardIdentifier, u64, Vec<u8>),
+        Forwarded(Request),
+        CallConfirmed(AccountId, Vec<u8>),
+    }
 );
 
 decl_storage! {
@@ -152,7 +152,11 @@ decl_module! {
 }
 
 impl<T: Trait> Module<T> {
-    fn register_verified_enclave(sender: &T::AccountId, report: &SgxReport, url: &Vec<u8>) -> Result {
+    fn register_verified_enclave(
+        sender: &T::AccountId,
+        report: &SgxReport,
+        url: &Vec<u8>,
+    ) -> Result {
         let enclave = Enclave {
             pubkey: sender.clone(),
             mr_enclave: report.mr_enclave,
@@ -189,7 +193,7 @@ impl<T: Trait> Module<T> {
             .checked_sub(1)
             .ok_or("[SubstraTEERegistry]: Underflow removing an enclave from the registry")?;
 
-        Self::swap_and_pop(index_to_remove, new_enclaves_count+1)?;
+        Self::swap_and_pop(index_to_remove, new_enclaves_count + 1)?;
         <EnclaveCount>::put(new_enclaves_count);
 
         Ok(())
@@ -221,17 +225,17 @@ mod tests {
     use super::*;
     use crate::substratee_registry;
     use externalities::set_and_run_with_externalities;
+    use node_primitives::{AccountId, Signature};
     use primitives::{sr25519, Blake2Hasher, Pair, Public, H256};
     use sr_primitives::weights::Weight;
     use sr_primitives::{
         testing::Header,
-        traits::{Verify, IdentifyAccount, BlakeTwo256, IdentityLookup},
+        traits::{BlakeTwo256, IdentifyAccount, IdentityLookup, Verify},
         Perbill,
     };
     use std::{cell::RefCell, collections::HashSet};
     use support::traits::{Currency, FindAuthor, Get, LockIdentifier};
     use support::{assert_ok, impl_outer_event, impl_outer_origin, parameter_types};
-    use node_primitives::{AccountId, Signature};
 
     thread_local! {
         static EXISTENTIAL_DEPOSIT: RefCell<u64> = RefCell::new(0);
@@ -247,27 +251,39 @@ mod tests {
     }
 
     // reproduce with "substratee_worker dump_ra"
-    const TEST1_CERT: &[u8] = include_bytes!("../../host_calls/test/test_ra_cert_MRSIGNER1_MRENCLAVE1.der");
-    const TEST2_CERT: &[u8] = include_bytes!("../../host_calls/test/test_ra_cert_MRSIGNER2_MRENCLAVE2.der");
-    const TEST3_CERT: &[u8] = include_bytes!("../../host_calls/test/test_ra_cert_MRSIGNER3_MRENCLAVE2.der");
-    const TEST1_SIGNER_ATTN: &[u8] = include_bytes!("../../host_calls/test/test_ra_signer_attn_MRSIGNER1_MRENCLAVE1.bin");
-    const TEST2_SIGNER_ATTN: &[u8] = include_bytes!("../../host_calls/test/test_ra_signer_attn_MRSIGNER2_MRENCLAVE2.bin");
-    const TEST3_SIGNER_ATTN: &[u8] = include_bytes!("../../host_calls/test/test_ra_signer_attn_MRSIGNER3_MRENCLAVE2.bin");
+    const TEST1_CERT: &[u8] =
+        include_bytes!("../../host_calls/test/test_ra_cert_MRSIGNER1_MRENCLAVE1.der");
+    const TEST2_CERT: &[u8] =
+        include_bytes!("../../host_calls/test/test_ra_cert_MRSIGNER2_MRENCLAVE2.der");
+    const TEST3_CERT: &[u8] =
+        include_bytes!("../../host_calls/test/test_ra_cert_MRSIGNER3_MRENCLAVE2.der");
+    const TEST1_SIGNER_ATTN: &[u8] =
+        include_bytes!("../../host_calls/test/test_ra_signer_attn_MRSIGNER1_MRENCLAVE1.bin");
+    const TEST2_SIGNER_ATTN: &[u8] =
+        include_bytes!("../../host_calls/test/test_ra_signer_attn_MRSIGNER2_MRENCLAVE2.bin");
+    const TEST3_SIGNER_ATTN: &[u8] =
+        include_bytes!("../../host_calls/test/test_ra_signer_attn_MRSIGNER3_MRENCLAVE2.bin");
     // reproduce with "substratee_worker getsignkey"
-    const TEST1_SIGNER_PUB: &[u8] = include_bytes!("../../host_calls/test/test_ra_signer_pubkey_MRSIGNER1_MRENCLAVE1.bin");
-    const TEST2_SIGNER_PUB: &[u8] = include_bytes!("../../host_calls/test/test_ra_signer_pubkey_MRSIGNER2_MRENCLAVE2.bin");
-    const TEST3_SIGNER_PUB: &[u8] = include_bytes!("../../host_calls/test/test_ra_signer_pubkey_MRSIGNER3_MRENCLAVE2.bin");
+    const TEST1_SIGNER_PUB: &[u8] =
+        include_bytes!("../../host_calls/test/test_ra_signer_pubkey_MRSIGNER1_MRENCLAVE1.bin");
+    const TEST2_SIGNER_PUB: &[u8] =
+        include_bytes!("../../host_calls/test/test_ra_signer_pubkey_MRSIGNER2_MRENCLAVE2.bin");
+    const TEST3_SIGNER_PUB: &[u8] =
+        include_bytes!("../../host_calls/test/test_ra_signer_pubkey_MRSIGNER3_MRENCLAVE2.bin");
 
     // reproduce with "make mrenclave" in worker repo root
     const TEST1_MRENCLAVE: [u8; 32] = [
         62, 252, 187, 232, 60, 135, 108, 204, 87, 78, 35, 169, 241, 237, 106, 217, 251, 241, 99,
-        189, 138, 157, 86, 136, 77, 91, 93, 23, 192, 104, 140, 167 ];
+        189, 138, 157, 86, 136, 77, 91, 93, 23, 192, 104, 140, 167,
+    ];
     const TEST2_MRENCLAVE: [u8; 32] = [
-        4, 190, 230, 132, 211, 129, 59, 237, 101, 78, 55, 174, 144, 177, 91, 134, 1, 240, 27, 174, 
-        81, 139, 8, 22, 32, 241, 228, 103, 189, 43, 44, 102];
+        4, 190, 230, 132, 211, 129, 59, 237, 101, 78, 55, 174, 144, 177, 91, 134, 1, 240, 27, 174,
+        81, 139, 8, 22, 32, 241, 228, 103, 189, 43, 44, 102,
+    ];
     const TEST3_MRENCLAVE: [u8; 32] = [
-        4, 190, 230, 132, 211, 129, 59, 237, 101, 78, 55, 174, 144, 177, 91, 134, 1, 240, 27, 174, 
-        81, 139, 8, 22, 32, 241, 228, 103, 189, 43, 44, 102];
+        4, 190, 230, 132, 211, 129, 59, 237, 101, 78, 55, 174, 144, 177, 91, 134, 1, 240, 27, 174,
+        81, 139, 8, 22, 32, 241, 228, 103, 189, 43, 44, 102,
+    ];
     // unix epoch. must be later than this
     const TEST1_TIMESTAMP: i64 = 1580587262i64;
     const TEST2_TIMESTAMP: i64 = 1581259412i64;
@@ -330,7 +346,7 @@ mod tests {
     pub type Balances = balances::Module<TestRuntime>;
 
     type AccountPublic = <Signature as Verify>::Signer;
-    
+
     // Easy access alias
     type Registry = super::Module<TestRuntime>;
 
@@ -383,8 +399,9 @@ mod tests {
         let signer_attn: [u32; 16] = Decode::decode(&mut TEST1_SIGNER_ATTN).unwrap();
         let mut pubkey = [0u8; 32];
         pubkey.copy_from_slice(&TEST1_SIGNER_PUB[..32]);
-        let signer: AccountId = AccountPublic::from(
-            sr25519::Public::decode(&mut &TEST1_SIGNER_PUB[..]).unwrap()).into_account();
+        let signer: AccountId =
+            AccountPublic::from(sr25519::Public::decode(&mut &TEST1_SIGNER_PUB[..]).unwrap())
+                .into_account();
 
         (signer, signer_attn)
     }
@@ -393,8 +410,9 @@ mod tests {
         let signer_attn: [u32; 16] = Decode::decode(&mut TEST2_SIGNER_ATTN).unwrap();
         let mut pubkey = [0u8; 32];
         pubkey.copy_from_slice(&TEST2_SIGNER_PUB[..32]);
-        let signer: AccountId = AccountPublic::from(
-            sr25519::Public::decode(&mut &TEST2_SIGNER_PUB[..]).unwrap()).into_account();
+        let signer: AccountId =
+            AccountPublic::from(sr25519::Public::decode(&mut &TEST2_SIGNER_PUB[..]).unwrap())
+                .into_account();
 
         (signer, signer_attn)
     }
@@ -403,11 +421,12 @@ mod tests {
         let signer_attn: [u32; 16] = Decode::decode(&mut TEST3_SIGNER_ATTN).unwrap();
         let mut pubkey = [0u8; 32];
         pubkey.copy_from_slice(&TEST3_SIGNER_PUB[..32]);
-        let signer: AccountId = AccountPublic::from(
-            sr25519::Public::decode(&mut &TEST3_SIGNER_PUB[..]).unwrap()).into_account();
+        let signer: AccountId =
+            AccountPublic::from(sr25519::Public::decode(&mut &TEST3_SIGNER_PUB[..]).unwrap())
+                .into_account();
 
         (signer, signer_attn)
-    }        
+    }
 
     #[test]
     fn add_enclave_works() {
@@ -476,7 +495,7 @@ mod tests {
                 timestamp: TEST1_TIMESTAMP,
                 url: URL.to_vec(),
             };
-            
+
             let e_2: Enclave<AccountId, Vec<u8>> = Enclave {
                 pubkey: signer2.clone(),
                 mr_enclave: TEST2_MRENCLAVE,
@@ -540,7 +559,13 @@ mod tests {
     fn register_invalid_enclave_fails() {
         let (signer, signer_attn) = get_signer1();
         assert!(
-            Registry::register_enclave(Origin::signed(signer), Vec::new(), [0u32; 16], URL.to_vec()).is_err(),
+            Registry::register_enclave(
+                Origin::signed(signer),
+                Vec::new(),
+                [0u32; 16],
+                URL.to_vec()
+            )
+            .is_err(),
             URL.to_vec()
         );
     }
@@ -556,7 +581,7 @@ mod tests {
                 timestamp: TEST1_TIMESTAMP,
                 url: url2.to_vec(),
             };
-            
+
             assert_ok!(Registry::register_enclave(
                 Origin::signed(signer.clone()),
                 TEST1_CERT.to_vec(),
@@ -582,9 +607,8 @@ mod tests {
         ExtBuilder::build().execute_with(|| {
             let ipfs_hash = "QmYY9U7sQzBYe79tVfiMyJ4prEJoJRWCD8t85j9qjssS9y";
             let shard = H256::default();
-            let request_hash =vec![];
+            let request_hash = vec![];
             let (signer, signer_attn) = get_signer1();
-
 
             assert_ok!(Registry::register_enclave(
                 Origin::signed(signer.clone()),
@@ -599,15 +623,22 @@ mod tests {
                 request_hash.clone(),
                 ipfs_hash.as_bytes().to_vec()
             ));
-            assert_eq!(str::from_utf8(&Registry::latest_ipfs_hash(shard.clone())).unwrap(), ipfs_hash);
+            assert_eq!(
+                str::from_utf8(&Registry::latest_ipfs_hash(shard.clone())).unwrap(),
+                ipfs_hash
+            );
             assert_eq!(Registry::worker_for_shard(shard.clone()), 1u64);
 
-            let expected_event = TestEvent::generic_event(RawEvent::UpdatedIpfsHash(shard.clone(), 1, ipfs_hash.as_bytes().to_vec()));
+            let expected_event = TestEvent::generic_event(RawEvent::UpdatedIpfsHash(
+                shard.clone(),
+                1,
+                ipfs_hash.as_bytes().to_vec(),
+            ));
             assert!(System::events().iter().any(|a| a.event == expected_event));
 
-            let expected_event = TestEvent::generic_event(RawEvent::CallConfirmed(signer.clone(), request_hash));
+            let expected_event =
+                TestEvent::generic_event(RawEvent::CallConfirmed(signer.clone(), request_hash));
             assert!(System::events().iter().any(|a| a.event == expected_event));
-
         })
     }
 
@@ -626,16 +657,15 @@ mod tests {
         })
     }
 
-
     #[test]
     fn call_worker_works() {
         ExtBuilder::build().execute_with(|| {
-            let req = Request { shard: ShardIdentifier::default(), cyphertext: vec![0u8,1,2,3,4]};
+            let req = Request {
+                shard: ShardIdentifier::default(),
+                cyphertext: vec![0u8, 1, 2, 3, 4],
+            };
             let (signer, signer_attn) = get_signer1();
-            assert!(Registry::call_worker(
-                Origin::signed(signer),
-                req.clone()
-            ).is_ok());
+            assert!(Registry::call_worker(Origin::signed(signer), req.clone()).is_ok());
             let expected_event = TestEvent::generic_event(RawEvent::Forwarded(req));
             assert!(System::events().iter().any(|a| a.event == expected_event));
         })

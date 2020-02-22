@@ -50,12 +50,18 @@ pub const IAS_REPORT_CA: &[u8] = include_bytes!("../AttestationReportSigningCACe
 
 // prevents panics in case of index out of bounds
 fn safe_indexing(data: &[u8], start: usize, end: usize) -> Result<&[u8], &'static str> {
-    if start > end { return Err("Illegal indexing")}
-    if data.len() < end { return Err("Index would be out of bounds")}
+    if start > end {
+        return Err("Illegal indexing");
+    }
+    if data.len() < end {
+        return Err("Index would be out of bounds");
+    }
     Ok(&data[start..end])
 }
 fn safe_indexing_one(data: &[u8], idx: usize) -> Result<u8, &'static str> {
-    if data.len() < idx { return Err("Index would be out of bounds")}
+    if data.len() < idx {
+        return Err("Index would be out of bounds");
+    }
     Ok(data[idx])
 }
 
@@ -82,7 +88,7 @@ pub fn verify_mra_cert(
     // Obtain Public Key length
     let mut len = safe_indexing_one(cert_der, offset)? as usize;
     if len > 0x80 {
-        len = (safe_indexing_one(cert_der, offset + 1)? as usize) * 0x100 
+        len = (safe_indexing_one(cert_der, offset + 1)? as usize) * 0x100
             + (safe_indexing_one(cert_der, offset + 2)? as usize);
         offset += 2;
     }
@@ -111,7 +117,7 @@ pub fn verify_mra_cert(
     let mut len = safe_indexing_one(cert_der, offset)? as usize;
 
     if len > 0x80 {
-        len = (safe_indexing_one(cert_der, offset + 1)? as usize) * 0x100 
+        len = (safe_indexing_one(cert_der, offset + 1)? as usize) * 0x100
             + (safe_indexing_one(cert_der, offset + 2)? as usize);
         offset += 2;
     }
@@ -271,7 +277,9 @@ pub fn verify_mra_cert(
         let _result = ecc_handle.open();
 
         let mut ephemeral_pub = sgx_ec256_public_t::default();
-        if pub_k.len() != 64 { return Err("wrong size of signer ephemeral public key") }
+        if pub_k.len() != 64 {
+            return Err("wrong size of signer ephemeral public key");
+        }
         ephemeral_pub.gx.copy_from_slice(&pub_k[..32]);
         ephemeral_pub.gy.copy_from_slice(&pub_k[32..]);
         // key is stored in little-endian order in RA report. reverse!
@@ -279,7 +287,9 @@ pub fn verify_mra_cert(
         ephemeral_pub.gy.reverse();
 
         let mut signature = sgx_ec256_signature_t::default();
-        if xt_signer_attn.len() != 16 { return Err("wrong size of signer attestation signature") }
+        if xt_signer_attn.len() != 16 {
+            return Err("wrong size of signer attestation signature");
+        }
         signature.x.copy_from_slice(&xt_signer_attn[..8]);
         signature.y.copy_from_slice(&xt_signer_attn[8..]);
 
@@ -316,24 +326,33 @@ mod tests {
     const TEST1_CERT: &[u8] = include_bytes!("../test/test_ra_cert_MRSIGNER1_MRENCLAVE1.der");
     const TEST2_CERT: &[u8] = include_bytes!("../test/test_ra_cert_MRSIGNER2_MRENCLAVE2.der");
     const TEST3_CERT: &[u8] = include_bytes!("../test/test_ra_cert_MRSIGNER3_MRENCLAVE2.der");
-    const TEST1_SIGNER_ATTN: &[u8] = include_bytes!("../test/test_ra_signer_attn_MRSIGNER1_MRENCLAVE1.bin");
-    const TEST2_SIGNER_ATTN: &[u8] = include_bytes!("../test/test_ra_signer_attn_MRSIGNER2_MRENCLAVE2.bin");
-    const TEST3_SIGNER_ATTN: &[u8] = include_bytes!("../test/test_ra_signer_attn_MRSIGNER3_MRENCLAVE2.bin");
+    const TEST1_SIGNER_ATTN: &[u8] =
+        include_bytes!("../test/test_ra_signer_attn_MRSIGNER1_MRENCLAVE1.bin");
+    const TEST2_SIGNER_ATTN: &[u8] =
+        include_bytes!("../test/test_ra_signer_attn_MRSIGNER2_MRENCLAVE2.bin");
+    const TEST3_SIGNER_ATTN: &[u8] =
+        include_bytes!("../test/test_ra_signer_attn_MRSIGNER3_MRENCLAVE2.bin");
     // reproduce with "substratee_worker getsignkey"
-    const TEST1_SIGNER_PUB: &[u8] = include_bytes!("../test/test_ra_signer_pubkey_MRSIGNER1_MRENCLAVE1.bin");
-    const TEST2_SIGNER_PUB: &[u8] = include_bytes!("../test/test_ra_signer_pubkey_MRSIGNER2_MRENCLAVE2.bin");
-    const TEST3_SIGNER_PUB: &[u8] = include_bytes!("../test/test_ra_signer_pubkey_MRSIGNER3_MRENCLAVE2.bin");
+    const TEST1_SIGNER_PUB: &[u8] =
+        include_bytes!("../test/test_ra_signer_pubkey_MRSIGNER1_MRENCLAVE1.bin");
+    const TEST2_SIGNER_PUB: &[u8] =
+        include_bytes!("../test/test_ra_signer_pubkey_MRSIGNER2_MRENCLAVE2.bin");
+    const TEST3_SIGNER_PUB: &[u8] =
+        include_bytes!("../test/test_ra_signer_pubkey_MRSIGNER3_MRENCLAVE2.bin");
 
     // reproduce with "make mrenclave" in worker repo root
     const TEST1_MRENCLAVE: &[u8] = &[
         62, 252, 187, 232, 60, 135, 108, 204, 87, 78, 35, 169, 241, 237, 106, 217, 251, 241, 99,
-        189, 138, 157, 86, 136, 77, 91, 93, 23, 192, 104, 140, 167 ];
+        189, 138, 157, 86, 136, 77, 91, 93, 23, 192, 104, 140, 167,
+    ];
     const TEST2_MRENCLAVE: &[u8] = &[
-        4, 190, 230, 132, 211, 129, 59, 237, 101, 78, 55, 174, 144, 177, 91, 134, 1, 240, 27, 174, 
-        81, 139, 8, 22, 32, 241, 228, 103, 189, 43, 44, 102];
+        4, 190, 230, 132, 211, 129, 59, 237, 101, 78, 55, 174, 144, 177, 91, 134, 1, 240, 27, 174,
+        81, 139, 8, 22, 32, 241, 228, 103, 189, 43, 44, 102,
+    ];
     const TEST3_MRENCLAVE: &[u8] = &[
-        4, 190, 230, 132, 211, 129, 59, 237, 101, 78, 55, 174, 144, 177, 91, 134, 1, 240, 27, 174, 
-        81, 139, 8, 22, 32, 241, 228, 103, 189, 43, 44, 102];
+        4, 190, 230, 132, 211, 129, 59, 237, 101, 78, 55, 174, 144, 177, 91, 134, 1, 240, 27, 174,
+        81, 139, 8, 22, 32, 241, 228, 103, 189, 43, 44, 102,
+    ];
     // unix epoch. must be later than this
     const TEST_TIMESTAMP: i64 = 1580587262i64;
 
@@ -409,12 +428,12 @@ mod tests {
     }
 
     #[test]
-    fn safe_indexing_works() {   
-        let data: [u8; 7] = [0,1,2,3,4,5,6];
-        assert_eq!(safe_indexing(&data,1,7), Ok(&data[1..7]));
-        assert_eq!(safe_indexing_one(&data,3), Ok(3));
-        assert!(safe_indexing(&data,1,8).is_err());
-        assert!(safe_indexing(&data,6,1).is_err());
-        assert!(safe_indexing(&data,16,19).is_err());
+    fn safe_indexing_works() {
+        let data: [u8; 7] = [0, 1, 2, 3, 4, 5, 6];
+        assert_eq!(safe_indexing(&data, 1, 7), Ok(&data[1..7]));
+        assert_eq!(safe_indexing_one(&data, 3), Ok(3));
+        assert!(safe_indexing(&data, 1, 8).is_err());
+        assert!(safe_indexing(&data, 6, 1).is_err());
+        assert!(safe_indexing(&data, 16, 19).is_err());
     }
 }

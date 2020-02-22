@@ -21,11 +21,11 @@ use transaction_pool::{self, txpool::Pool as TransactionPool};
 
 // Our native executor instance.
 native_executor_instance!(
-	pub Executor,
-	substratee_node_runtime::api::dispatch,
-	substratee_node_runtime::native_version,
-	// Added by SCS
-	runtime_interfaces::HostFunctions
+    pub Executor,
+    substratee_node_runtime::api::dispatch,
+    substratee_node_runtime::native_version,
+    // Added by SCS
+    runtime_interfaces::HostFunctions
 );
 
 construct_simple_protocol! {

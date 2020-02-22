@@ -3,7 +3,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "256"]
-
 //SCS: remove this once clippy rules are aligned with substrate
 #![warn(clippy::not_unsafe_ptr_arg_deref)]
 
@@ -241,24 +240,24 @@ impl substratee_registry::Trait for Runtime {
 // --- end changed by SCS -------------------------------------------------
 
 construct_runtime!(
-	pub enum Runtime where
-		Block = Block,
-		NodeBlock = opaque::Block,
-		UncheckedExtrinsic = UncheckedExtrinsic
-	{
-		System: system::{Module, Call, Storage, Config, Event},
-		Timestamp: timestamp::{Module, Call, Storage, Inherent},
-		Aura: aura::{Module, Config<T>, Inherent(Timestamp)},
-		Grandpa: grandpa::{Module, Call, Storage, Config, Event},
-		Indices: indices::{default, Config<T>},
-		Balances: balances::{default, Error},
-		TransactionPayment: transaction_payment::{Module, Storage},
-		Sudo: sudo,
-		// --- start changed by SCS -----------------------------------------------
-		SubstraTEERegistry: substratee_registry::{Module, Call, Storage, Event<T>},
-		// --- end changed by SCS -------------------------------------------------
-		RandomnessCollectiveFlip: randomness_collective_flip::{Module, Call, Storage},
-	}
+    pub enum Runtime where
+        Block = Block,
+        NodeBlock = opaque::Block,
+        UncheckedExtrinsic = UncheckedExtrinsic
+    {
+        System: system::{Module, Call, Storage, Config, Event},
+        Timestamp: timestamp::{Module, Call, Storage, Inherent},
+        Aura: aura::{Module, Config<T>, Inherent(Timestamp)},
+        Grandpa: grandpa::{Module, Call, Storage, Config, Event},
+        Indices: indices::{default, Config<T>},
+        Balances: balances::{default, Error},
+        TransactionPayment: transaction_payment::{Module, Storage},
+        Sudo: sudo,
+        // --- start changed by SCS -----------------------------------------------
+        SubstraTEERegistry: substratee_registry::{Module, Call, Storage, Event<T>},
+        // --- end changed by SCS -------------------------------------------------
+        RandomnessCollectiveFlip: randomness_collective_flip::{Module, Call, Storage},
+    }
 );
 
 /// The address format for describing accounts.
