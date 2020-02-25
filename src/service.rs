@@ -176,7 +176,7 @@ pub fn new_full<C: Send + Default + 'static>(
                 config: grandpa_config,
                 link: grandpa_link,
                 network: service.network(),
-                inherent_data_providers: inherent_data_providers.clone(),
+                inherent_data_providers,
                 on_exit: service.on_exit(),
                 telemetry_on_connect: Some(service.telemetry_on_connect_stream()),
                 voting_rule: grandpa::VotingRulesBuilder::default().build(),
