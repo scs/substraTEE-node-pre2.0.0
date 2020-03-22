@@ -1,4 +1,5 @@
 // No changes by SCS here
+use network::config::TransportConfig;
 
 use crate::chain_spec;
 use crate::service;
@@ -23,7 +24,7 @@ where
         ParseAndPrepare::Run(cmd) => cmd.run(
             load_spec,
             exit,
-            |exit, _cli_args, _custom_args, config: Config<_>| {
+            |exit, _cli_args, _custom_args, mut config: Config<_>| {
                 info!("{}", version.name);
                 info!("  version {}", config.full_version());
                 info!("  by {}, 2017, 2018", version.author);
@@ -31,6 +32,19 @@ where
                 info!("Node name: {}", config.name);
                 info!("Roles: {}", display_role(&config));
                 let runtime = Runtime::new().map_err(|e| format!("{:?}", e))?;
+
+                let addr = parity_multiaddr::multiaddr!(Ip4([0, 0, 0, 0]), Tcp(33044u16));
+                println!("Multiaddress: {:?}", addr);
+                config.chain_spec.add_boot_node(addr);
+
+                config.network.transport = TransportConfig::Normal {
+                    enable_mdns: true,
+                    allow_private_ipv4: true,
+                    wasm_external_transport: None,
+                };
+
+                info!("Listen Addresses: {:?}", config.network.listen_addresses);
+
                 match config.roles {
                     ServiceRoles::LIGHT => {
                         run_until_exit(runtime, service::new_light(config)?, exit)
